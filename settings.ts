@@ -2,16 +2,16 @@ import fs from 'fs';
 import { watchFile, unwatchFile } from 'fs'
 import { fileURLToPath } from 'url'
 
-global.owner = ['5492916450307', '573196588149', '5218711426787']
+global.owner = ['51924537931', '573104675480', '16473694569']
 global.sessionName = 'Sessions/Owner'
 
 global.api = {
   url: 'https://api.stellarwa.xyz',
-  key: '' 
+  key: 'api-tYdgA' 
 }
 
 global.msgglobal = '⋆˚𝜗 There was a problem processing the request, contact the creator or a moderator to fix this issue. (✿◡‿◡)'
-global.dev = `© ᴍᴀᴅᴇ ᴡɪᴛʜ ʙʏ ɪ'ᴍ ᴅɪᴇɢᴏ ッ`
+global.dev = `© ᴍᴀᴅᴇ ᴡɪᴛʜ ʙʏ ᴅᴀɴɪᴇʟッ`
 
 global.mess = {
   socket: '(∩´͈ ᴖ `͈∩ ྀི) Este comando solo puede ser ejecutado por un Socket.',
@@ -22,9 +22,9 @@ global.mess = {
 }
 
 global.my = {
-ch: "120363420992828502@newsletter", // Oficial
-ch2: "120363405689107729@newsletter", // Api
-ch3: "120363401404146384@newsletter" // Yuki
+ch: "120363401360971612@newsletter", // Oficial
+ch2: "120363401360971612@newsletter", // Api
+ch3: "120363401360971612@newsletter" // Yuki
 }
 
 let file = fileURLToPath(import.meta.url)
