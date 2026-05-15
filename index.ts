@@ -64,7 +64,7 @@ console.log(chalk.blue.bold('\nI N I C I A N D O  .  .  .'));
     
 console.log(chalk.cyan(`
       Stellar | Wa Bot
-     Powered by I'm Diego ~
+     Powered by Dev.Daniel ~
 `));
 
 const BOT_TYPES = [
