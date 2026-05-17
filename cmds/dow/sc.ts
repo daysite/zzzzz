@@ -1,61 +1,67 @@
+import fetch from 'node-fetch'
+
 export default {
   command: ['soundcloud', 'sc'],
-  category: 'descargas',
+  category: 'downloader',
 
   run: async (sock, m, args) => {
     try {
+      if (!args[0]) {
+        return m.reply('《✧》Por favor, ingresa un enlace de SoundCloud')
+      }
+
       const url = args[0]
 
-      if (!url) {
-        return m.reply('《✤》 Ingresa un link de SoundCloud')
+      await m.reply('《✧》 Descargando audio de SoundCloud...')
+
+      const apiUrl = `https://api.delirius.store/download/soundcloud?url=${encodeURIComponent(url)}`
+
+      const response = await fetch(apiUrl)
+      const res = await response.json()
+
+      console.log(res)
+
+      if (!res?.data) {
+        return m.reply('《✧》 No se pudo descargar el audio')
       }
 
-      await m.reply('《✤》 Descargando audio de SoundCloud...')
+      const title = res.data.title || 'SoundCloud Audio'
+      const author = res.data.author || 'Desconocido'
+      const thumbnail = res.data.image
+      const audio = res.data.download?.url || res.data.download
 
-      const api = `https://api.delirius.store/download/soundcloud?url=${encodeURIComponent(url)}`
-
-      const response = await fetch(api)
-      const data = await response.json()
-
-      if (!data?.status || !data?.data?.download) {
-        return m.reply('《✤》 No se pudo descargar el audio')
+      if (!audio) {
+        return m.reply('《✧》 El enlace de descarga no fue encontrado')
       }
-
-      const {
-        title,
-        artist,
-        image,
-        download
-      } = data.data
 
       await sock.sendMessage(
         m.chat,
         {
-          image: { url: image },
-          caption:
-`╭─〔 🎵 SOUND CLOUD 〕─⬣
-│
-│ 📌 Título: ${title || 'Desconocido'}
-│ 👤 Autor: ${artist || 'Desconocido'}
-│
-╰────────────────⬣`
+          image: { url: thumbnail },
+          caption: `➥ Descargando › ${title}
+
+> ✿⃘࣪◌ ֪ Autor › ${author}
+> ✿⃘࣪◌ ֪ Plataforma › SoundCloud
+> ✿⃘࣪◌ ֪ Enlace › ${url}
+
+𐙚 ❀ ｡ ↻ El archivo se está enviando, espera un momento... ˙𐙚`
         },
         { quoted: m }
       )
 
-      return sock.sendMessage(
+      await sock.sendMessage(
         m.chat,
         {
-          audio: { url: download },
-          mimetype: 'audio/mp4',
-          fileName: `${title || 'soundcloud'}.mp3`
+          audio: { url: audio },
+          mimetype: 'audio/mpeg',
+          fileName: `${title}.mp3`
         },
         { quoted: m }
       )
 
     } catch (e) {
       console.log(e)
-      return m.reply(msgglobal)
+      return m.reply('《✧》 Ocurrió un error al descargar el audio')
     }
   }
-}
+} 
