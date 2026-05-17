@@ -7,7 +7,7 @@ export default {
   run: async (sock, m, args) => {
     try {
       if (!args[0]) {
-        return m.reply('《✧》Por favor, ingresa un enlace de SoundCloud')
+        return m.reply('《✧》 Ingresa un link de SoundCloud')
       }
 
       const url = args[0]
@@ -19,19 +19,20 @@ export default {
       const response = await fetch(apiUrl)
       const res = await response.json()
 
-      console.log(res)
+      console.log(JSON.stringify(res, null, 2))
 
-      if (!res?.data) {
-        return m.reply('《✧》 No se pudo descargar el audio')
-      }
+      const data = res.data || res
 
-      const title = res.data.title || 'SoundCloud Audio'
-      const author = res.data.author || 'Desconocido'
-      const thumbnail = res.data.image
-      const audio = res.data.download?.url || res.data.download
+      const title = data.title || 'SoundCloud Audio'
+      const author = data.author || 'Desconocido'
+      const thumbnail = data.image || data.thumbnail
+      const audio =
+        data.download?.url ||
+        data.download ||
+        data.dl
 
       if (!audio) {
-        return m.reply('《✧》 El enlace de descarga no fue encontrado')
+        return m.reply('《✧》 La API no devolvió el audio.')
       }
 
       await sock.sendMessage(
@@ -42,9 +43,8 @@ export default {
 
 > ✿⃘࣪◌ ֪ Autor › ${author}
 > ✿⃘࣪◌ ֪ Plataforma › SoundCloud
-> ✿⃘࣪◌ ֪ Enlace › ${url}
 
-𐙚 ❀ ｡ ↻ El archivo se está enviando, espera un momento... ˙𐙚`
+𐙚 ❀ ｡ ↻ Enviando audio... ˙𐙚`
         },
         { quoted: m }
       )
@@ -61,7 +61,7 @@ export default {
 
     } catch (e) {
       console.log(e)
-      return m.reply('《✧》 Ocurrió un error al descargar el audio')
+      return m.reply('《✧》 Error al descargar el audio.')
     }
   }
-} 
+}
