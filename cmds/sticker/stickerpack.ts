@@ -1,117 +1,92 @@
-import axios from 'axios';
-
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-const toBuffer = async (url) => Buffer.from((await axios.get(url, { responseType: 'arraybuffer', timeout: 15000 })).data);
-const key = api.key;
-
-const isStickerUrl = (url) => {
-  return /^(https?:\/\/)?(www\.)?sticker\.ly\/s\/[a-zA-Z0-9]+$/i.test(url);
-};
-
-const searchPacks = async (query, attempt = 1) => {
-  try {
-    const { data } = await axios.get(`${api.url}/stickerly/search`, { params: { query, key }, timeout: 10000 });
-    return data;
-  } catch (e) {
-    if (e.response?.status === 429 && attempt <= 3) {
-      await delay((e.response.headers['retry-after'] || 5) * 1000);
-      return searchPacks(query, attempt + 1);
-    }
-    throw e;
-  }
-};
-
-const downloadPack = async (url, attempt = 1) => {
-  try {
-    const { data } = await axios.get(`${api.url}/stickerly/detail`, { params: { url, key }, timeout: 10000 });
-    return data;
-  } catch (e) {
-    if (e.response?.status === 429 && attempt <= 3) {
-      await delay((e.response.headers['retry-after'] || 5) * 1000);
-      return downloadPack(url, attempt + 1);
-    }
-    if (e.response?.status === 500) return { status: false, error: 500 };
-    throw e;
-  }
-};
-
-const filterRelevantPacks = (packs, query) => {
-  const searchTerm = query.toLowerCase().trim();
-  if (!searchTerm) return packs;
-  return packs.filter(pack => {
-    const packName = (pack.name || '').toLowerCase();
-    return packName.includes(searchTerm);
-  });
-};
+import fetch from 'node-fetch'
 
 export default {
-  command: ['stickerpack', 'spack'],
-  category: 'stickers',
-  run: async (sock, m, args, command, text, prefix) => {
+  command: ['stickerly', 'stickers'],
+  category: 'downloader',
+
+  run: async (sock, m, args) => {
     try {
-      if (!text) return sock.reply(m.chat, `《✧》 Ingresa un texto para buscar packs de stickers o una URL de sticker.ly.`, m);
-      const name = await getUser(m.sender).name || m.sender.split('@')[0];
-      let packData;
-      const stickerMatch = text.match(/(?:sticker\.ly\/s\/)([a-zA-Z0-9]+)(?:\s|$)/);
-      const url = stickerMatch ? 'https://sticker.ly/s/' + stickerMatch[1] : (isStickerUrl(text) ? text : null);
-
-      if (url) {
-        let detail = await downloadPack(url);
-        if (!detail || !detail.status || detail.error === 500) {
-          return sock.reply(m.chat, `《✧》 El pack de la URL no está disponible o es privado.`, m);
-        }
-        if (!detail.detalles) return sock.reply(m.chat, `《✧》 No se pudo obtener el pack desde la URL.`, m);
-        packData = detail.detalles;
-      } else {
-        const search = await searchPacks(text);
-        if (!search.status || !search.resultados?.length) return sock.reply(m.chat, `《✧》 No se encontraron packs para *${text}*.`, m);
-        const relevantPacks = filterRelevantPacks(search.resultados, text);
-        let packsToTry = relevantPacks.length > 0 ? relevantPacks : search.resultados;
-        let detail = null;
-        let intentos = 0;
-        const maxIntentos = Math.min(packsToTry.length, 5);
-        const indices = [...Array(packsToTry.length).keys()];
-        for (let i = indices.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [indices[i], indices[j]] = [indices[j], indices[i]];
-        }
-        while (intentos < maxIntentos && !detail) {
-          const index = indices[intentos];
-          const res = await downloadPack(packsToTry[index].url);
-          if (res?.status && res?.detalles?.stickers?.length > 0) {
-            detail = res.detalles;
-            break;
-          }
-          intentos++;
-        }
-        if (!detail) {
-          return sock.reply(m.chat, `《✧》 No se pudo descargar ningún pack válido.`, m);
-        }
-        packData = detail;
+      if (!args[0]) {
+        return m.reply('《✧》 Ingresa el nombre del pack de stickers')
       }
 
-      const { name: packName, author, stickers } = packData;
-      if (!stickers?.length) {
-        return sock.reply(m.chat, `《✧》 El pack no contiene stickers válidos.`, m);
+      const query = args.join(' ')
+
+      await m.reply(`《✧》 Buscando pack: ${query}...`)
+
+      // BUSCADOR
+      const searchUrl = `https://api.delirius.store/search/stickerly?query=${encodeURIComponent(query)}`
+      const searchRes = await fetch(searchUrl)
+      const searchJson = await searchRes.json()
+
+      console.log(JSON.stringify(searchJson, null, 2))
+
+      const results = searchJson.data || searchJson.result || []
+
+      if (!results.length) {
+        return m.reply('《✧》 No se encontraron packs.')
       }
 
-      const MAX_STICKERS = 30;
-      const selectedStickers = stickers.slice(0, MAX_STICKERS);
+      // PACK ALEATORIO
+      const random = results[Math.floor(Math.random() * results.length)]
 
-      await sock.sendMessage(m.chat, {
-        stickerPack: {
-          name: packName,
-          publisher: author?.name || author?.username || `@${name}`,
-          description: 'Sᴛᴇʟʟᴀʀ 🧠 Wᴀʙᴏᴛ',
-          stickers: selectedStickers.map(s => ({
-            url: s.imageUrl,
-            isAnimated: s.isAnimated || false,
-            emojis: ['🎭']
-          }))
-        }
-      }, { quoted: m });
+      const title = random.title || 'Sticker Pack'
+      const author = random.author || random.publisher || 'Desconocido'
+      const thumb = random.image || random.thumbnail
+      const link = random.url || random.link
+
+      if (!link) {
+        return m.reply('《✧》 No se encontró el enlace del pack.')
+      }
+
+      await sock.sendMessage(
+        m.chat,
+        {
+          image: { url: thumb },
+          caption: `➥ Pack encontrado › ${title}
+
+> ✿⃘࣪◌ ֪ Autor › ${author}
+> ✿⃘࣪◌ ֪ Plataforma › Sticker.ly
+
+𐙚 ❀ ｡ ↻ Descargando stickers... ˙𐙚`
+        },
+        { quoted: m }
+      )
+
+      // DESCARGA
+      const apiUrl = `https://api.delirius.store/download/stickerly?url=${encodeURIComponent(link)}`
+      const response = await fetch(apiUrl)
+      const res = await response.json()
+
+      console.log(JSON.stringify(res, null, 2))
+
+      const data = res.data || res
+      const stickers = data.stickers || []
+
+      if (!stickers.length) {
+        return m.reply('《✧》 No se pudieron descargar los stickers.')
+      }
+
+      for (const sticker of stickers) {
+        const stickerUrl =
+          sticker.url ||
+          sticker.download ||
+          sticker
+
+        if (!stickerUrl) continue
+
+        await sock.sendMessage(
+          m.chat,
+          {
+            sticker: { url: stickerUrl }
+          },
+          { quoted: m }
+        )
+      }
+
     } catch (e) {
-      return m.reply(msgglobal);
+      console.log(e)
+      return m.reply('《✧》 Error al descargar el pack.')
     }
   }
-};
+}
