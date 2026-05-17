@@ -11,7 +11,7 @@ export default {
       }
 
       const query = args.join(' ')
-      await m.reply(`《✧》 Buscando en SoundCloud: ${query}...`)
+    //  await m.reply(`《✧》 Buscando en SoundCloud: ${query}...`)
 
       const searchUrl = `https://api.delirius.store/search/soundcloud?q=${encodeURIComponent(query)}`
       const searchRes = await fetch(searchUrl)
@@ -29,7 +29,7 @@ export default {
       const thumbnail = random.image || random.thumbnail
       const link = random.link
 
-      await m.reply(`《✧》 Descargando audio: ${title}`)
+     // await m.reply(`《✧》 Descargando audio: ${title}`)
 
       const apiUrl = `https://api.delirius.store/download/soundcloud?url=${encodeURIComponent(link)}`
       const response = await fetch(apiUrl)
