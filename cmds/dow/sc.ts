@@ -36,10 +36,7 @@ export default {
       const res = await response.json()
 
       const data = res.data || res
-      const audio =
-        data.download?.url ||
-        data.download ||
-        data.dl
+      const audio = data.download
 
       if (!audio) {
         return m.reply('《✧》 La API no devolvió el audio.')
@@ -48,11 +45,13 @@ export default {
       await sock.sendMessage(
         m.chat,
         {
-          image: { url: thumbnail },
-          caption: `➥ Descargando › ${title}
+          image: { url: data.image || thumbnail },
+          caption: `➥ Descargando › ${data.title}
 
-> ✿⃘࣪◌ ֪ Autor › ${author}
+> ✿⃘࣪◌ ֪ Autor › ${data.author}
 > ✿⃘࣪◌ ֪ Plataforma › SoundCloud
+> ✿⃘࣪◌ ֪ Likes › ${data.likes}
+> ✿⃘࣪◌ ֪ Reproducciones › ${data.playbacks}
 
 𐙚 ❀ ｡ ↻ Enviando audio... ˙𐙚`
         },
@@ -64,7 +63,7 @@ export default {
         {
           audio: { url: audio },
           mimetype: 'audio/mpeg',
-          fileName: `${title}.mp3`
+          fileName: `${data.title}.mp3`
         },
         { quoted: m }
       )
