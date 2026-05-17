@@ -19,13 +19,15 @@ export default {
         .filter(Boolean)
         .map(id => sock.decodeJid(id))
 
-      let tagText = `╭─〔 👥 Etiquetando a todos 〕─⬣\n\n`
+      const totalMembers = mentions.length
+
+      let tagText = `╭─〔 👥 ETIQUETANDO A TODOS 〕─⬣\n`
+      tagText += `│ 👤 Integrantes: ${totalMembers}\n`
+      tagText += `╰────────────────⬣\n\n`
 
       for (let user of mentions) {
         tagText += `➤ @${user.split('@')[0]}\n`
       }
-
-      tagText += `\n╰────────────────⬣`
 
       const finalText = text
         ? `${text}\n\n${tagText}`
