@@ -7,25 +7,35 @@ export default {
   run: async (sock, m, args) => {
     try {
       if (!args[0]) {
-        return m.reply('《✧》 Ingresa un link de SoundCloud')
+        return m.reply('《✧》 Ingresa una búsqueda de SoundCloud')
       }
 
-      const url = args[0]
+      const query = args.join(' ')
+      await m.reply(`《✧》 Buscando en SoundCloud: ${query}...`)
 
-      await m.reply('《✧》 Descargando audio de SoundCloud...')
+      const searchUrl = `https://api.delirius.store/search/soundcloud?q=${encodeURIComponent(query)}`
+      const searchRes = await fetch(searchUrl)
+      const searchJson = await searchRes.json()
 
-      const apiUrl = `https://api.delirius.store/download/soundcloud?url=${encodeURIComponent(url)}`
+      const results = searchJson.data
+      if (!results || results.length === 0) {
+        return m.reply('《✧》 No se encontraron resultados.')
+      }
 
+      const random = results[Math.floor(Math.random() * results.length)]
+
+      const title = random.title || 'SoundCloud Audio'
+      const author = random.artist || 'Desconocido'
+      const thumbnail = random.image || random.thumbnail
+      const link = random.link
+
+      await m.reply(`《✧》 Descargando audio: ${title}`)
+
+      const apiUrl = `https://api.delirius.store/download/soundcloud?url=${encodeURIComponent(link)}`
       const response = await fetch(apiUrl)
       const res = await response.json()
 
-      console.log(JSON.stringify(res, null, 2))
-
       const data = res.data || res
-
-      const title = data.title || 'SoundCloud Audio'
-      const author = data.author || 'Desconocido'
-      const thumbnail = data.image || data.thumbnail
       const audio =
         data.download?.url ||
         data.download ||
