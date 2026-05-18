@@ -1,26 +1,26 @@
 import fetch from 'node-fetch'
+import { getBuffer } from '../../core/message.ts'
 
 export default {
   command: ['pokecard', 'pokemoncard'],
-  category: 'imagenes',
+  category: 'internet',
 
   run: async (sock, m, args) => {
+
     try {
 
-      if (!args[0]) {
+      if (!args || !args[0]) {
         return m.reply(
-          '《✧》 Ingresa el nombre de un Pokémon.\n\nEjemplo:\n.pokecard charizard'
+          '✿ Ingresa el nombre de un Pokémon.\n\nEjemplo:\n.pokecard charizard'
         )
       }
 
+      await m.reply(mess.wait)
+
       const text = args.join(' ')
 
-      await m.reply(
-        `《✧》 Buscando carta Pokémon de: ${text}`
-      )
-
       const apiUrl =
-        `http://api.delirius.store/search/pokecard?text=${encodeURIComponent(text)}`
+        `https://api.delirius.store/search/pokecard?text=${encodeURIComponent(text)}`
 
       const response =
         await fetch(apiUrl)
@@ -30,50 +30,42 @@ export default {
 
       console.log(JSON.stringify(res, null, 2))
 
-      const data =
-        res.data || res
+      const result =
+        res.data || res.result || res
 
+      // DETECTAR IMAGEN
       const image =
-        data.image ||
-        data.img ||
-        data.url
+        result.image ||
+        result.img ||
+        result.url
 
       if (!image) {
         return m.reply(
-          '《✧》 No se encontró la carta Pokémon.'
+          '✿ No se encontró ninguna carta Pokémon.'
         )
       }
 
-      const nombre =
-        data.name ||
-        text
+      const buffer =
+        await getBuffer(image)
 
-      const tipo =
-        data.type ||
-        'Desconocido'
+      const caption =
+`╭─〔 POKÉMON CARD 〕─⬣
 
-      const hp =
-        data.hp ||
-        '???'
+✦ Nombre › ${result.name || text}
+
+✧ Tipo › ${result.type || 'Desconocido'}
+
+✪ HP › ${result.hp || '???'}
+
+❍ Rareza › ${result.rarity || 'Desconocida'}
+
+╰────────────────⬣`
 
       await sock.sendMessage(
         m.chat,
         {
-          image: { url: image },
-
-          caption:
-`╭─〔 POKÉMON CARD 〕─⬣
-
-Nombre:
-${nombre}
-
-Tipo:
-${tipo}
-
-HP:
-${hp}
-
-╰────────────────⬣`
+          image: buffer,
+          caption
         },
         { quoted: m }
       )
@@ -83,7 +75,7 @@ ${hp}
       console.log(e)
 
       return m.reply(
-        '《✧》 Error al buscar la carta Pokémon.'
+        '✿ Ocurrió un error al buscar la carta.'
       )
     }
   }
