@@ -15,37 +15,59 @@ export default {
       const text = args.join(' ')
       await m.reply(`《✧》 Buscando carta Pokémon de: ${text}`)
 
-      // URL de la API (sin http, ya que fetch usa https por defecto si la URL es relativa)
+      // URL de la API (la API devuelve directamente la imagen)
       const apiUrl = `https://api.delirius.store/search/pokecard?text=${encodeURIComponent(text)}`
+      
+      // Hacer la petición
       const response = await fetch(apiUrl)
-      const res = await response.json()
 
-      console.log(JSON.stringify(res, null, 2))
-
-      // La API devuelve un objeto con propiedad 'data' que contiene la imagen en 'image_url'
-      const image = res.data?.image_url || res.data?.image || res.image
-
-      if (!image) {
-        return m.reply('《✧》 No se encontró la carta Pokémon.')
+      // Verificar si la respuesta es exitosa
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
 
-      // Extraer información adicional si está disponible en res.data
-      const nombre = res.data?.name || text
-      const tipo = res.data?.type || 'Desconocido'
-      const hp = res.data?.hp || '???'
-
-      await sock.sendMessage(
-        m.chat,
-        {
-          image: { url: image },
-          caption: `╭─〔 POKÉMON CARD 〕─⬣\n\nNombre:\n${nombre}\n\nTipo:\n${tipo}\n\nHP:\n${hp}\n\n╰────────────────⬣`
-        },
-        { quoted: m }
-      )
+      // Verificar el tipo de contenido
+      const contentType = response.headers.get('content-type')
+      
+      // Si es JSON, intentar extraer la imagen (por si cambia la API)
+      if (contentType && contentType.includes('application/json')) {
+        const res = await response.json()
+        const image = res.data?.image_url || res.data?.image || res.image || res.url
+        
+        if (!image) {
+          return m.reply('《✧》 No se encontró la carta Pokémon.')
+        }
+        
+        // Enviar la imagen desde la URL extraída
+        await sock.sendMessage(
+          m.chat,
+          {
+            image: { url: image },
+            caption: `╭─〔 POKÉMON CARD 〕─⬣\n\n《✧》 Pokémon: ${text.toUpperCase()}\n\n╰────────────────⬣`
+          },
+          { quoted: m }
+        )
+      } 
+      // Si es imagen, enviar directamente el buffer
+      else if (contentType && contentType.includes('image/')) {
+        const imageBuffer = await response.buffer()
+        
+        await sock.sendMessage(
+          m.chat,
+          {
+            image: imageBuffer,
+            caption: `╭─〔 POKÉMON CARD 〕─⬣\n\n《✧》 Pokémon: ${text.toUpperCase()}\n\n╰────────────────⬣`
+          },
+          { quoted: m }
+        )
+      }
+      else {
+        throw new Error(`Tipo de contenido no soportado: ${contentType}`)
+      }
 
     } catch (e) {
-      console.log(e)
-      return m.reply('《✧》 Error al buscar la carta Pokémon.')
+      console.error('Error:', e)
+      return m.reply('《✧》 Error al buscar la carta Pokémon. Intenta con otro nombre.')
     }
   }
 }
