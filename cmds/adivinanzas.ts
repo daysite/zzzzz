@@ -8,11 +8,15 @@ const preguntas = [
     respuesta: 'perro'
   },
   {
+    pregunta: 'Agua congelada.',
+    respuesta: 'hielo'
+  },
+  {
     pregunta: 'Fruta roja relacionada con Newton.',
     respuesta: 'manzana'
   },
   {
-    pregunta: 'Sale de día e ilumina el mundo.',
+    pregunta: 'Sale de día e ilumina la tierra.',
     respuesta: 'sol'
   },
   {
@@ -20,128 +24,64 @@ const preguntas = [
     respuesta: 'gato'
   },
   {
-    pregunta: 'Vehículo de cuatro ruedas.',
-    respuesta: 'carro'
-  },
-  {
-    pregunta: 'Necesaria para vivir y transparente.',
-    respuesta: 'agua'
-  },
-  {
-    pregunta: 'Tiene ocho patas y hace telarañas.',
-    respuesta: 'araña'
-  },
-  {
-    pregunta: 'Animal más grande de la tierra.',
-    respuesta: 'elefante'
-  },
-  {
-    pregunta: 'Animal que canta al amanecer.',
-    respuesta: 'gallo'
-  },
-  {
-    pregunta: 'Fruta amarilla y alargada.',
-    respuesta: 'platano'
-  },
-  {
-    pregunta: 'Cae del cielo cuando hace frío.',
-    respuesta: 'nieve'
-  },
-  {
-    pregunta: 'Quema y da calor.',
-    respuesta: 'fuego'
-  },
-  {
-    pregunta: 'Aparece de noche en el cielo.',
-    respuesta: 'luna'
-  },
-  {
-    pregunta: 'Vive en el agua y tiene aletas.',
-    respuesta: 'pez'
-  },
-  {
-    pregunta: 'Lugar donde hay muchos libros.',
-    respuesta: 'biblioteca'
-  },
-  {
-    pregunta: 'Sirve para saber la hora.',
+    pregunta: 'Tiene agujas pero no pincha.',
     respuesta: 'reloj'
-  },
-  {
-    pregunta: 'Rey de la selva.',
-    respuesta: 'leon'
-  },
-  {
-    pregunta: 'Comida italiana redonda.',
-    respuesta: 'pizza'
-  },
-  {
-    pregunta: 'Vehículo que vuela.',
-    respuesta: 'avion'
-  },
-  {
-    pregunta: 'Tiene hojas y da sombra.',
-    respuesta: 'arbol'
-  },
-  {
-    pregunta: 'Agua congelada.',
-    respuesta: 'hielo'
-  },
-  {
-    pregunta: 'Produce miel.',
-    respuesta: 'abeja'
-  },
-  {
-    pregunta: 'Sirve para llamar y enviar mensajes.',
-    respuesta: 'telefono'
-  },
-  {
-    pregunta: 'La usa un rey en la cabeza.',
-    respuesta: 'corona'
-  },
-  {
-    pregunta: 'Tiene muchos colores y aparece después de la lluvia.',
-    respuesta: 'arcoiris'
-  },
-  {
-    pregunta: 'Animal blanco y negro parecido a un caballo.',
-    respuesta: 'cebra'
-  },
-  {
-    pregunta: 'Objeto que usas para escribir.',
-    respuesta: 'lapiz'
-  },
-  {
-    pregunta: 'Sirve para cortar papel.',
-    respuesta: 'tijeras'
-  },
-  {
-    pregunta: 'Planeta donde vivimos.',
-    respuesta: 'tierra'
-  },
-  {
-    pregunta: 'Tiene dientes pero no muerde.',
-    respuesta: 'peine'
-  },
-  {
-    pregunta: 'Tiene teclas pero no abre puertas.',
-    respuesta: 'piano'
-  },
-  {
-    pregunta: 'Tiene cuello pero no cabeza.',
-    respuesta: 'botella'
   },
   {
     pregunta: 'Mientras más seca, más moja.',
     respuesta: 'toalla'
   },
   {
-    pregunta: 'Sube y baja pero nunca se mueve.',
+    pregunta: 'Tiene cuello pero no cabeza.',
+    respuesta: 'botella'
+  },
+  {
+    pregunta: 'Rey de la selva.',
+    respuesta: 'leon'
+  },
+  {
+    pregunta: 'Vehículo que vuela.',
+    respuesta: 'avion'
+  },
+  {
+    pregunta: 'Produce miel.',
+    respuesta: 'abeja'
+  },
+  {
+    pregunta: 'Tiene teclas pero no abre puertas.',
+    respuesta: 'piano'
+  },
+  {
+    pregunta: 'Sube y baja pero no se mueve.',
     respuesta: 'escalera'
   },
   {
-    pregunta: 'Tiene agujas pero no pincha.',
-    respuesta: 'reloj'
+    pregunta: 'Tiene dientes pero no muerde.',
+    respuesta: 'peine'
+  },
+  {
+    pregunta: 'Comida italiana redonda.',
+    respuesta: 'pizza'
+  },
+  {
+    pregunta: 'Animal más grande de la tierra.',
+    respuesta: 'elefante'
+  },
+  {
+    pregunta: 'Objeto que sirve para escribir.',
+    respuesta: 'lapiz'
+  },
+  {
+    pregunta: 'Planeta donde vivimos.',
+    respuesta: 'tierra'
+  },
+  {
+    pregunta: 'Lugar donde hay muchos libros.',
+    respuesta: 'biblioteca'
+  },
+  {
+    pregunta: 'Cae del cielo cuando hace frío.',
+    respuesta: 'nieve'
   }
 ]
 
@@ -163,11 +103,11 @@ export default {
           Math.floor(Math.random() * preguntas.length)
         ]
 
-      const sentMessage =
-        await sock.sendMessage(
-          m.chat,
-          {
-            text:
+      // ENVIAR PREGUNTA
+      const msg = await sock.sendMessage(
+        m.chat,
+        {
+          text:
 `╭─〔 ADIVINANZA 〕─⬣
 
 Pregunta:
@@ -176,58 +116,51 @@ ${random.pregunta}
 Tiempo: 1 minuto
 Intentos: 3
 
-Responde este mensaje con tu respuesta.
+Responde ESTE mensaje con tu respuesta.
 
 ╰────────────────⬣`
-          },
-          { quoted: m }
-        )
+        },
+        { quoted: m }
+      )
 
+      // GUARDAR DATOS
       juegosAdivinanza[m.chat] = {
-        respuesta:
-          random.respuesta.toLowerCase(),
-
+        respuesta: random.respuesta.toLowerCase(),
         intentos: 3,
-
-        jugador: m.sender,
-
-        messageId:
-          sentMessage.key.id
+        messageId: msg.key.id
       }
 
+      // TIEMPO
       setTimeout(async () => {
 
-        if (juegosAdivinanza[m.chat]) {
+        if (!juegosAdivinanza[m.chat]) return
 
-          const respuesta =
-            juegosAdivinanza[m.chat].respuesta
+        const respuesta =
+          juegosAdivinanza[m.chat].respuesta
 
-          delete juegosAdivinanza[m.chat]
+        delete juegosAdivinanza[m.chat]
 
-          await sock.sendMessage(
-            m.chat,
-            {
-              text:
+        await sock.sendMessage(
+          m.chat,
+          {
+            text:
 `《✧》 Tiempo agotado.
 
 Respuesta correcta:
 ${respuesta}`
-            }
-          )
-        }
+          }
+        )
 
       }, 60000)
 
     } catch (e) {
       console.log(e)
-
-      return m.reply(
-        '《✧》 Ocurrió un error.'
-      )
+      return m.reply('《✧》 Ocurrió un error.')
     }
   }
 }
 
+// DETECTOR
 export const before = async (sock, m) => {
 
   try {
@@ -237,18 +170,20 @@ export const before = async (sock, m) => {
 
     if (!juego) return
 
-    // SOLO RESPONDIENDO AL MENSAJE
-    const quotedId =
-      m.message?.extendedTextMessage?.contextInfo?.stanzaId
+    // DETECTAR RESPUESTA AL MENSAJE
+    const quoted =
+      m.message?.extendedTextMessage?.contextInfo
 
-    if (!quotedId) return
+    if (!quoted) return
 
-    if (quotedId !== juego.messageId) return
+    const stanzaId = quoted.stanzaId
+
+    if (stanzaId !== juego.messageId) return
 
     const texto =
       (
-        m.body ||
         m.text ||
+        m.body ||
         ''
       )
         .toLowerCase()
@@ -268,7 +203,7 @@ export const before = async (sock, m) => {
 Usuario:
 @${m.sender.split('@')[0]}
 
-Respuesta:
+La respuesta era:
 ${juego.respuesta}`,
           mentions: [m.sender]
         },
@@ -279,7 +214,7 @@ ${juego.respuesta}`,
       return
     }
 
-    // RESTAR INTENTOS
+    // INCORRECTO
     juego.intentos--
 
     if (juego.intentos <= 0) {
