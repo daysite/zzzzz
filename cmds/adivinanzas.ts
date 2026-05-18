@@ -3,86 +3,26 @@ const juegosAdivinanza =
   (global.juegosAdivinanza = {})
 
 const preguntas = [
-  {
-    pregunta: 'Tiene cuatro patas y ladra.',
-    respuesta: 'perro'
-  },
-  {
-    pregunta: 'Agua congelada.',
-    respuesta: 'hielo'
-  },
-  {
-    pregunta: 'Fruta roja relacionada con Newton.',
-    respuesta: 'manzana'
-  },
-  {
-    pregunta: 'Sale de día e ilumina la tierra.',
-    respuesta: 'sol'
-  },
-  {
-    pregunta: 'Animal que maúlla.',
-    respuesta: 'gato'
-  },
-  {
-    pregunta: 'Tiene agujas pero no pincha.',
-    respuesta: 'reloj'
-  },
-  {
-    pregunta: 'Mientras más seca, más moja.',
-    respuesta: 'toalla'
-  },
-  {
-    pregunta: 'Tiene cuello pero no cabeza.',
-    respuesta: 'botella'
-  },
-  {
-    pregunta: 'Rey de la selva.',
-    respuesta: 'leon'
-  },
-  {
-    pregunta: 'Vehículo que vuela.',
-    respuesta: 'avion'
-  },
-  {
-    pregunta: 'Produce miel.',
-    respuesta: 'abeja'
-  },
-  {
-    pregunta: 'Tiene teclas pero no abre puertas.',
-    respuesta: 'piano'
-  },
-  {
-    pregunta: 'Sube y baja pero no se mueve.',
-    respuesta: 'escalera'
-  },
-  {
-    pregunta: 'Tiene dientes pero no muerde.',
-    respuesta: 'peine'
-  },
-  {
-    pregunta: 'Comida italiana redonda.',
-    respuesta: 'pizza'
-  },
-  {
-    pregunta: 'Animal más grande de la tierra.',
-    respuesta: 'elefante'
-  },
-  {
-    pregunta: 'Objeto que sirve para escribir.',
-    respuesta: 'lapiz'
-  },
-  {
-    pregunta: 'Planeta donde vivimos.',
-    respuesta: 'tierra'
-  },
-  {
-    pregunta: 'Lugar donde hay muchos libros.',
-    respuesta: 'biblioteca'
-  },
-  {
-    pregunta: 'Cae del cielo cuando hace frío.',
-    respuesta: 'nieve'
-  }
+  { pregunta: 'Agua congelada.', respuesta: 'hielo' },
+  { pregunta: 'Tiene cuatro patas y ladra.', respuesta: 'perro' },
+  { pregunta: 'Animal que maúlla.', respuesta: 'gato' },
+  { pregunta: 'Sale de día e ilumina la tierra.', respuesta: 'sol' },
+  { pregunta: 'Fruta roja relacionada con Newton.', respuesta: 'manzana' },
+  { pregunta: 'Tiene agujas pero no pincha.', respuesta: 'reloj' },
+  { pregunta: 'Mientras más seca, más moja.', respuesta: 'toalla' },
+  { pregunta: 'Tiene cuello pero no cabeza.', respuesta: 'botella' },
+  { pregunta: 'Vehículo que vuela.', respuesta: 'avion' },
+  { pregunta: 'Produce miel.', respuesta: 'abeja' },
+  { pregunta: 'Rey de la selva.', respuesta: 'leon' },
+  { pregunta: 'Comida italiana redonda.', respuesta: 'pizza' },
+  { pregunta: 'Tiene teclas pero no abre puertas.', respuesta: 'piano' },
+  { pregunta: 'Sube y baja pero no se mueve.', respuesta: 'escalera' },
+  { pregunta: 'Tiene dientes pero no muerde.', respuesta: 'peine' },
+  { pregunta: 'Objeto para escribir.', respuesta: 'lapiz' },
+  { pregunta: 'Planeta donde vivimos.', respuesta: 'tierra' },
+  { pregunta: 'Lugar con muchos libros.', respuesta: 'biblioteca' },
+  { pregunta: 'Cae del cielo cuando hace frío.', respuesta: 'nieve' },
+  { pregunta: 'Animal más grande de la tierra.', respuesta: 'elefante' }
 ]
 
 export default {
@@ -103,11 +43,12 @@ export default {
           Math.floor(Math.random() * preguntas.length)
         ]
 
-      // ENVIAR PREGUNTA
-      const msg = await sock.sendMessage(
-        m.chat,
-        {
-          text:
+      // ENVIAR MENSAJE
+      const sentMsg =
+        await sock.sendMessage(
+          m.chat,
+          {
+            text:
 `╭─〔 ADIVINANZA 〕─⬣
 
 Pregunta:
@@ -116,21 +57,21 @@ ${random.pregunta}
 Tiempo: 1 minuto
 Intentos: 3
 
-Responde ESTE mensaje con tu respuesta.
+Responde a ESTE mensaje.
 
 ╰────────────────⬣`
-        },
-        { quoted: m }
-      )
+          },
+          { quoted: m }
+        )
 
-      // GUARDAR DATOS
+      // GUARDAR
       juegosAdivinanza[m.chat] = {
         respuesta: random.respuesta.toLowerCase(),
         intentos: 3,
-        messageId: msg.key.id
+        id: sentMsg.key.id
       }
 
-      // TIEMPO
+      // TEMPORIZADOR
       setTimeout(async () => {
 
         if (!juegosAdivinanza[m.chat]) return
@@ -146,7 +87,7 @@ Responde ESTE mensaje con tu respuesta.
             text:
 `《✧》 Tiempo agotado.
 
-Respuesta correcta:
+Respuesta:
 ${respuesta}`
           }
         )
@@ -155,7 +96,7 @@ ${respuesta}`
 
     } catch (e) {
       console.log(e)
-      return m.reply('《✧》 Ocurrió un error.')
+      return m.reply('《✧》 Error.')
     }
   }
 }
@@ -170,15 +111,14 @@ export const before = async (sock, m) => {
 
     if (!juego) return
 
-    // DETECTAR RESPUESTA AL MENSAJE
+    // DETECTAR RESPUESTA
     const quoted =
-      m.message?.extendedTextMessage?.contextInfo
+      m.quoted
 
     if (!quoted) return
 
-    const stanzaId = quoted.stanzaId
-
-    if (stanzaId !== juego.messageId) return
+    // VALIDAR QUE RESPONDA AL BOT
+    if (quoted.id !== juego.id) return
 
     const texto =
       (
@@ -191,19 +131,19 @@ export const before = async (sock, m) => {
 
     if (!texto) return
 
-    // CORRECTO
+    // CORRECTA
     if (texto === juego.respuesta) {
 
       await sock.sendMessage(
         m.chat,
         {
           text:
-`《✧》 Respuesta correcta.
+`《✧》 Correcto.
 
 Usuario:
 @${m.sender.split('@')[0]}
 
-La respuesta era:
+Respuesta:
 ${juego.respuesta}`,
           mentions: [m.sender]
         },
@@ -214,7 +154,7 @@ ${juego.respuesta}`,
       return
     }
 
-    // INCORRECTO
+    // INCORRECTA
     juego.intentos--
 
     if (juego.intentos <= 0) {
@@ -239,7 +179,7 @@ ${juego.respuesta}`
       m.chat,
       {
         text:
-`《✧》 Respuesta incorrecta.
+`《✧》 Incorrecto.
 
 Intentos restantes:
 ${juego.intentos}`
