@@ -1,105 +1,147 @@
-const juegosAdivinanza = global.juegosAdivinanza || (global.juegosAdivinanza = {})
+const juegosAdivinanza =
+  global.juegosAdivinanza ||
+  (global.juegosAdivinanza = {})
 
 const preguntas = [
   {
-    pregunta: '🐾 Tiene cuatro patas, ladra y es el mejor amigo del hombre.',
+    pregunta: 'Tiene cuatro patas y ladra.',
     respuesta: 'perro'
   },
   {
-    pregunta: '🍎 Fruta roja que cayó sobre Newton.',
+    pregunta: 'Fruta roja relacionada con Newton.',
     respuesta: 'manzana'
   },
   {
-    pregunta: '🌞 Sale de día y ilumina la Tierra.',
+    pregunta: 'Sale de día e ilumina el mundo.',
     respuesta: 'sol'
   },
   {
-    pregunta: '🐱 Animal que maúlla.',
+    pregunta: 'Animal que maúlla.',
     respuesta: 'gato'
   },
   {
-    pregunta: '🚗 Vehículo de cuatro ruedas.',
+    pregunta: 'Vehículo de cuatro ruedas.',
     respuesta: 'carro'
   },
   {
-    pregunta: '💧 Necesaria para vivir y transparente.',
+    pregunta: 'Necesaria para vivir y transparente.',
     respuesta: 'agua'
   },
   {
-    pregunta: '🕷️ Tiene ocho patas y hace telarañas.',
+    pregunta: 'Tiene ocho patas y hace telarañas.',
     respuesta: 'araña'
   },
   {
-    pregunta: '🐘 Animal más grande de la tierra.',
+    pregunta: 'Animal más grande de la tierra.',
     respuesta: 'elefante'
   },
   {
-    pregunta: '🐓 Animal que canta al amanecer.',
+    pregunta: 'Animal que canta al amanecer.',
     respuesta: 'gallo'
   },
   {
-    pregunta: '🍌 Fruta amarilla y alargada.',
+    pregunta: 'Fruta amarilla y alargada.',
     respuesta: 'platano'
   },
   {
-    pregunta: '❄️ Cae del cielo cuando hace mucho frío.',
+    pregunta: 'Cae del cielo cuando hace frío.',
     respuesta: 'nieve'
   },
   {
-    pregunta: '🔥 Quema y da calor.',
+    pregunta: 'Quema y da calor.',
     respuesta: 'fuego'
   },
   {
-    pregunta: '🌙 Aparece de noche en el cielo.',
+    pregunta: 'Aparece de noche en el cielo.',
     respuesta: 'luna'
   },
   {
-    pregunta: '🐟 Vive en el agua y tiene aletas.',
+    pregunta: 'Vive en el agua y tiene aletas.',
     respuesta: 'pez'
   },
   {
-    pregunta: '📚 Lugar donde hay muchos libros.',
+    pregunta: 'Lugar donde hay muchos libros.',
     respuesta: 'biblioteca'
   },
   {
-    pregunta: '⌚ Sirve para saber la hora.',
+    pregunta: 'Sirve para saber la hora.',
     respuesta: 'reloj'
   },
   {
-    pregunta: '🦁 Rey de la selva.',
+    pregunta: 'Rey de la selva.',
     respuesta: 'leon'
   },
   {
-    pregunta: '🍕 Comida italiana redonda.',
+    pregunta: 'Comida italiana redonda.',
     respuesta: 'pizza'
   },
   {
-    pregunta: '✈️ Vehículo que vuela por el cielo.',
+    pregunta: 'Vehículo que vuela.',
     respuesta: 'avion'
   },
   {
-    pregunta: '🌳 Tiene hojas y da sombra.',
+    pregunta: 'Tiene hojas y da sombra.',
     respuesta: 'arbol'
   },
   {
-    pregunta: '🧊 Agua congelada.',
+    pregunta: 'Agua congelada.',
     respuesta: 'hielo'
   },
   {
-    pregunta: '🐝 Produce miel.',
+    pregunta: 'Produce miel.',
     respuesta: 'abeja'
   },
   {
-    pregunta: '📱 Lo usas para llamar y enviar mensajes.',
+    pregunta: 'Sirve para llamar y enviar mensajes.',
     respuesta: 'telefono'
   },
   {
-    pregunta: '👑 La usa un rey en la cabeza.',
+    pregunta: 'La usa un rey en la cabeza.',
     respuesta: 'corona'
   },
   {
-    pregunta: '🌈 Tiene muchos colores y aparece después de la lluvia.',
+    pregunta: 'Tiene muchos colores y aparece después de la lluvia.',
     respuesta: 'arcoiris'
+  },
+  {
+    pregunta: 'Animal blanco y negro parecido a un caballo.',
+    respuesta: 'cebra'
+  },
+  {
+    pregunta: 'Objeto que usas para escribir.',
+    respuesta: 'lapiz'
+  },
+  {
+    pregunta: 'Sirve para cortar papel.',
+    respuesta: 'tijeras'
+  },
+  {
+    pregunta: 'Planeta donde vivimos.',
+    respuesta: 'tierra'
+  },
+  {
+    pregunta: 'Tiene dientes pero no muerde.',
+    respuesta: 'peine'
+  },
+  {
+    pregunta: 'Tiene teclas pero no abre puertas.',
+    respuesta: 'piano'
+  },
+  {
+    pregunta: 'Tiene cuello pero no cabeza.',
+    respuesta: 'botella'
+  },
+  {
+    pregunta: 'Mientras más seca, más moja.',
+    respuesta: 'toalla'
+  },
+  {
+    pregunta: 'Sube y baja pero nunca se mueve.',
+    respuesta: 'escalera'
+  },
+  {
+    pregunta: 'Tiene agujas pero no pincha.',
+    respuesta: 'reloj'
   }
 ]
 
@@ -107,12 +149,12 @@ export default {
   command: ['adivinanza', 'guess'],
   category: 'juegos',
 
-  run: async (sock, m, args) => {
+  run: async (sock, m) => {
     try {
 
       if (juegosAdivinanza[m.chat]) {
         return m.reply(
-          '《✧》 Ya hay una adivinanza en curso en este chat.'
+          '《✧》 Ya hay una adivinanza activa en este chat.'
         )
       }
 
@@ -121,29 +163,37 @@ export default {
           Math.floor(Math.random() * preguntas.length)
         ]
 
-      juegosAdivinanza[m.chat] = {
-        respuesta: random.respuesta.toLowerCase(),
-        intentos: 3,
-        jugador: m.sender
-      }
+      const sentMessage =
+        await sock.sendMessage(
+          m.chat,
+          {
+            text:
+`╭─〔 ADIVINANZA 〕─⬣
 
-      await sock.sendMessage(
-        m.chat,
-        {
-          text:
-`╭─〔 🎮 ADIVINANZA 🎮 〕─⬣
+Pregunta:
+${random.pregunta}
 
-❓ ${random.pregunta}
+Tiempo: 1 minuto
+Intentos: 3
 
-⏳ Tiempo: 1 minuto
-🎯 Intentos: 3
-
-💬 Responde escribiendo la respuesta en el chat.
+Responde este mensaje con tu respuesta.
 
 ╰────────────────⬣`
-        },
-        { quoted: m }
-      )
+          },
+          { quoted: m }
+        )
+
+      juegosAdivinanza[m.chat] = {
+        respuesta:
+          random.respuesta.toLowerCase(),
+
+        intentos: 3,
+
+        jugador: m.sender,
+
+        messageId:
+          sentMessage.key.id
+      }
 
       setTimeout(async () => {
 
@@ -158,9 +208,10 @@ export default {
             m.chat,
             {
               text:
-`⏰ Se acabó el tiempo.
+`《✧》 Tiempo agotado.
 
-✅ La respuesta era: *${respuesta}*`
+Respuesta correcta:
+${respuesta}`
             }
           )
         }
@@ -181,29 +232,44 @@ export const before = async (sock, m) => {
 
   try {
 
-    const juego = juegosAdivinanza[m.chat]
+    const juego =
+      juegosAdivinanza[m.chat]
 
     if (!juego) return
 
-    if (m.sender !== juego.jugador) return
+    // SOLO RESPONDIENDO AL MENSAJE
+    const quotedId =
+      m.message?.extendedTextMessage?.contextInfo?.stanzaId
+
+    if (!quotedId) return
+
+    if (quotedId !== juego.messageId) return
 
     const texto =
-      (m.body || m.text || '')
+      (
+        m.body ||
+        m.text ||
+        ''
+      )
         .toLowerCase()
         .trim()
 
     if (!texto) return
 
+    // CORRECTO
     if (texto === juego.respuesta) {
 
       await sock.sendMessage(
         m.chat,
         {
           text:
-`🎉 ¡Correcto!
+`《✧》 Respuesta correcta.
 
-👤 @${m.sender.split('@')[0]}
-✅ La respuesta era: *${juego.respuesta}*`,
+Usuario:
+@${m.sender.split('@')[0]}
+
+Respuesta:
+${juego.respuesta}`,
           mentions: [m.sender]
         },
         { quoted: m }
@@ -213,6 +279,7 @@ export const before = async (sock, m) => {
       return
     }
 
+    // RESTAR INTENTOS
     juego.intentos--
 
     if (juego.intentos <= 0) {
@@ -221,9 +288,10 @@ export const before = async (sock, m) => {
         m.chat,
         {
           text:
-`❌ Se acabaron los intentos.
+`《✧》 Se acabaron los intentos.
 
-✅ La respuesta correcta era: *${juego.respuesta}*`
+Respuesta correcta:
+${juego.respuesta}`
         },
         { quoted: m }
       )
@@ -236,9 +304,10 @@ export const before = async (sock, m) => {
       m.chat,
       {
         text:
-`❌ Respuesta incorrecta.
+`《✧》 Respuesta incorrecta.
 
-🎯 Intentos restantes: ${juego.intentos}`
+Intentos restantes:
+${juego.intentos}`
       },
       { quoted: m }
     )
