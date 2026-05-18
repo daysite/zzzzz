@@ -1,5 +1,4 @@
 import fetch from 'node-fetch'
-import { getBuffer } from '../../core/message.ts'
 
 export default {
   command: ['pokecard', 'pokemoncard'],
@@ -9,15 +8,15 @@ export default {
 
     try {
 
-      if (!args || !args[0]) {
+      if (!args[0]) {
         return m.reply(
-          '✿ Ingresa el nombre de un Pokémon.\n\nEjemplo:\n.pokecard charizard'
+          '✿ Ingresa un Pokémon.\n\nEjemplo:\n.pokecard charizard'
         )
       }
 
-      await m.reply(mess.wait)
-
       const text = args.join(' ')
+
+      await m.reply('✿ Buscando carta Pokémon...')
 
       const apiUrl =
         `https://api.delirius.store/search/pokecard?text=${encodeURIComponent(text)}`
@@ -28,44 +27,35 @@ export default {
       const res =
         await response.json()
 
-      console.log(JSON.stringify(res, null, 2))
+      console.log(res)
 
-      const result =
-        res.data || res.result || res
+      const data =
+        res.data || res
 
-      // DETECTAR IMAGEN
       const image =
-        result.image ||
-        result.img ||
-        result.url
+        data.image ||
+        data.img ||
+        data.url
 
       if (!image) {
         return m.reply(
-          '✿ No se encontró ninguna carta Pokémon.'
+          '✿ No se encontró ninguna carta.'
         )
       }
-
-      const buffer =
-        await getBuffer(image)
-
-      const caption =
-`╭─〔 POKÉMON CARD 〕─⬣
-
-✦ Nombre › ${result.name || text}
-
-✧ Tipo › ${result.type || 'Desconocido'}
-
-✪ HP › ${result.hp || '???'}
-
-❍ Rareza › ${result.rarity || 'Desconocida'}
-
-╰────────────────⬣`
 
       await sock.sendMessage(
         m.chat,
         {
-          image: buffer,
-          caption
+          image: {
+            url: image
+          },
+
+          caption:
+`╭─〔 POKÉCARD 〕─⬣
+
+✦ Pokémon › ${data.name || text}
+
+╰────────────────⬣`
         },
         { quoted: m }
       )
@@ -75,7 +65,7 @@ export default {
       console.log(e)
 
       return m.reply(
-        '✿ Ocurrió un error al buscar la carta.'
+        '✿ Error al usar la API.'
       )
     }
   }
