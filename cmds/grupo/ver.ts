@@ -16,13 +16,16 @@ export default {
       
       // === OBTENER EL BUFFER ===
       let mediaBuffer = null
-      let mimeType = quoted.mime || quoted.mimetype || 'image/jpeg'
+      let mimeType = quoted.mime || quoted.mimetype || ''
+      let mediaType = quoted.type || 'imageMessage'
       
       // Usar download() que ya sabemos que funciona
       if (typeof quoted.download === 'function') {
         try {
           mediaBuffer = await quoted.download()
           console.log('✅ Buffer obtenido:', mediaBuffer?.length, 'bytes')
+          console.log('📝 Tipo de mensaje original:', mediaType)
+          console.log('📝 MIME Type:', mimeType)
         } catch (err) {
           console.log('Error en download:', err.message)
         }
@@ -37,81 +40,96 @@ export default {
       }
       
       if (!mediaBuffer || mediaBuffer.length === 0) {
-        return m.reply('《✧》 No se pudo obtener la imagen. El mensaje pudo haber expirado.')
+        return m.reply('《✧》 No se pudo obtener el contenido. El mensaje pudo haber expirado.')
       }
       
-      // === ENVIAR LA IMAGEN (VERSIÓN CORREGIDA) ===
-      try {
-        // OPCIÓN 1: Enviar como buffer directo (la más común)
+      // === DETECTAR EL TIPO REAL DEL MEDIA ===
+      // Por si el type no es confiable, detectar por extensión o MIME
+      let esVideo = false
+      let esImagen = false
+      let esAudio = false
+      
+      // Detectar por MIME type
+      if (mimeType.includes('video/')) {
+        esVideo = true
+      } else if (mimeType.includes('image/')) {
+        esImagen = true
+      } else if (mimeType.includes('audio/')) {
+        esAudio = true
+      }
+      
+      // Detectar por el tipo de mensaje
+      if (mediaType === 'videoMessage') {
+        esVideo = true
+      } else if (mediaType === 'imageMessage') {
+        esImagen = true
+      } else if (mediaType === 'audioMessage') {
+        esAudio = true
+      }
+      
+      // Detectar por los primeros bytes (magic numbers)
+      if (!esVideo && !esImagen && !esAudio && mediaBuffer.length > 4) {
+        const isPNG = mediaBuffer[0] === 0x89 && mediaBuffer[1] === 0x50
+        const isJPEG = mediaBuffer[0] === 0xFF && mediaBuffer[1] === 0xD8
+        const isMP4 = mediaBuffer[0] === 0x00 && mediaBuffer[1] === 0x00 && mediaBuffer[2] === 0x00 && mediaBuffer[3] === 0x1C
+        const isWEBP = mediaBuffer[0] === 0x52 && mediaBuffer[1] === 0x49 && mediaBuffer[2] === 0x46 && mediaBuffer[3] === 0x46
+        
+        if (isMP4) esVideo = true
+        else if (isPNG || isJPEG) esImagen = true
+        else if (isWEBP) esImagen = true
+      }
+      
+      console.log('🎯 Tipo detectado:', { esVideo, esImagen, esAudio })
+      
+      // === ENVIAR SEGÚN EL TIPO ===
+      const tamañoKB = (mediaBuffer.length / 1024).toFixed(2)
+      
+      if (esVideo) {
+        // Enviar como video
         await sock.sendMessage(m.chat, {
-          image: mediaBuffer,
-          caption: `╭─〔 VIEW ONCE REVEALED 〕─⬣\n\n📷 Imagen recuperada\n📦 Tamaño: ${(mediaBuffer.length / 1024).toFixed(2)} KB\n\n⚠️ Este mensaje era de "Ver una sola vez"\n\n╰────────────────⬣`
+          video: mediaBuffer,
+          caption: `╭─〔 VIEW ONCE REVEALED 〕─⬣\n\n🎬 VIDEO recuperado\n📦 Tamaño: ${tamañoKB} KB\n\n⚠️ Este mensaje era de "Ver una sola vez"\n\n╰────────────────⬣`
         }, { quoted: m })
         
-        console.log('✅ Imagen enviada (método 1)')
+        console.log('✅ Video enviado correctamente')
+        await m.reply('《✅》 Video revelado correctamente.')
         
-      } catch (error1) {
-        console.log('Error método 1:', error1.message)
+      } else if (esImagen) {
+        // Enviar como imagen
+        await sock.sendMessage(m.chat, {
+          image: mediaBuffer,
+          caption: `╭─〔 VIEW ONCE REVEALED 〕─⬣\n\n📷 IMAGEN recuperada\n📦 Tamaño: ${tamañoKB} KB\n\n⚠️ Este mensaje era de "Ver una sola vez"\n\n╰────────────────⬣`
+        }, { quoted: m })
         
-        try {
-          // OPCIÓN 2: Convertir a base64 y enviar como URL
-          const base64 = mediaBuffer.toString('base64')
-          
-          await sock.sendMessage(m.chat, {
-            image: `data:${mimeType};base64,${base64}`,
-            caption: `╭─〔 VIEW ONCE REVEALED 〕─⬣\n\n📷 Imagen recuperada\n\n⚠️ Este mensaje era de "Ver una sola vez"\n\n╰────────────────⬣`
-          }, { quoted: m })
-          
-          console.log('✅ Imagen enviada (método 2 - base64)')
-          
-        } catch (error2) {
-          console.log('Error método 2:', error2.message)
-          
-          try {
-            // OPCIÓN 3: Usar un objeto URL
-            const { default: stream } = await import('stream')
-            const { Buffer } = await import('buffer')
-            
-            const readableStream = new stream.Readable()
-            readableStream.push(mediaBuffer)
-            readableStream.push(null)
-            
-            await sock.sendMessage(m.chat, {
-              image: readableStream,
-              caption: `╭─〔 VIEW ONCE REVEALED 〕─⬣\n\n📷 Imagen recuperada\n\n⚠️ Este mensaje era de "Ver una sola vez"\n\n╰────────────────⬣`
-            }, { quoted: m })
-            
-            console.log('✅ Imagen enviada (método 3 - stream)')
-            
-          } catch (error3) {
-            console.log('Error método 3:', error3.message)
-            
-            // OPCIÓN 4: Guardar temporalmente y enviar como archivo
-            const fs = await import('fs')
-            const path = await import('path')
-            const os = await import('os')
-            
-            const tempFile = path.join(os.tmpdir(), `reveal_${Date.now()}.jpg`)
-            fs.writeFileSync(tempFile, mediaBuffer)
-            
-            await sock.sendMessage(m.chat, {
-              image: { url: tempFile },
-              caption: `╭─〔 VIEW ONCE REVEALED 〕─⬣\n\n📷 Imagen recuperada\n\n⚠️ Este mensaje era de "Ver una sola vez"\n\n╰────────────────⬣`
-            }, { quoted: m })
-            
-            // Limpiar archivo temporal
-            fs.unlinkSync(tempFile)
-            
-            console.log('✅ Imagen enviada (método 4 - archivo temporal)')
-          }
-        }
+        console.log('✅ Imagen enviada correctamente')
+        await m.reply('《✅》 Imagen revelada correctamente.')
+        
+      } else if (esAudio) {
+        // Enviar como nota de voz
+        await sock.sendMessage(m.chat, {
+          audio: mediaBuffer,
+          mimetype: 'audio/mp4',
+          ptt: true
+        }, { quoted: m })
+        
+        console.log('✅ Audio enviado correctamente')
+        await m.reply('《✅》 Nota de voz revelada correctamente.')
+        
+      } else {
+        // Tipo desconocido, intentar enviar como documento
+        await sock.sendMessage(m.chat, {
+          document: mediaBuffer,
+          mimetype: mimeType || 'application/octet-stream',
+          fileName: `viewonce_${Date.now()}.${mimeType.split('/')[1] || 'bin'}`
+        }, { quoted: m })
+        
+        console.log('✅ Archivo enviado como documento')
+        await m.reply('《✅》 Archivo revelado correctamente.')
       }
-      
-      await m.reply('《✅》 Imagen revelada correctamente.')
 
     } catch (e) {
-      console.error('Error general:', e)
-      return m.reply('《✧》 Error al revelar la imagen.\n\nDetalle: ' + (e.message || 'Error desconocido'))
+      console.error('Error completo:', e)
+      return m.reply('《✧》 Error al revelar el contenido.\n\nDetalle: ' + (e.message || 'Error desconocido'))
     }
   }
 }
