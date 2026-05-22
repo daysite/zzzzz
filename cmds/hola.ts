@@ -2,11 +2,15 @@ export default {
   command: ['hola', 'hello', 'hi', 'presentate', 'quienes', 'info'],
   category: 'general',
 
-  // Lista de saludos aleatorios para .hola (NINGUNO menciona a Nao)
-  saludosRandom: [
-    {
-      titulo: "👋 SALUDO CÁLIDO",
-      mensaje: `✨ ¡Hola *{nombre}*! ✨
+  run: async (sock, m, args) => {
+    try {
+      const nombreUsuario = m.pushName || 'Usuario'
+      
+      // Lista de saludos aleatorios para .hola (NINGUNO menciona a Nao)
+      const saludosRandom = [
+        {
+          titulo: "👋 SALUDO CÁLIDO",
+          mensaje: `✨ ¡Hola *${nombreUsuario}*! ✨
 
 ━━━━━━━━━━━━━━━━━━━━━
 
@@ -19,10 +23,10 @@ export default {
 
 🎯 *¿Necesitas ayuda?*
 Usa .menu o .help`
-    },
-    {
-      titulo: "🌟 SALUDO ESPECIAL",
-      mensaje: `¡Hey *{nombre}*! 🌟
+        },
+        {
+          titulo: "🌟 SALUDO ESPECIAL",
+          mensaje: `¡Hey *${nombreUsuario}*! 🌟
 
 ━━━━━━━━━━━━━━━━━━━━━
 
@@ -34,10 +38,10 @@ Listo para lo que necesites
 🎮 *Comandos disponibles:*
 .pokemon - Captura Pokémon
 .sticker - Crea stickers`
-    },
-    {
-      titulo: "💫 SALUDO MATUTINO",
-      mensaje: `¡Buenos días *{nombre}*! ☀️
+        },
+        {
+          titulo: "💫 SALUDO MATUTINO",
+          mensaje: `¡Buenos días *${nombreUsuario}*! ☀️
 
 ━━━━━━━━━━━━━━━━━━━━━
 
@@ -47,10 +51,10 @@ Que tengas un lindo día.
 ━━━━━━━━━━━━━━━━━━━━━
 
 ¿En qué puedo asistirte hoy?`
-    },
-    {
-      titulo: "🌙 SALUDO NOCTURNO",
-      mensaje: `Buenas noches *{nombre}* 🌙
+        },
+        {
+          titulo: "🌙 SALUDO NOCTURNO",
+          mensaje: `Buenas noches *${nombreUsuario}* 🌙
 
 ━━━━━━━━━━━━━━━━━━━━━
 
@@ -60,10 +64,10 @@ Estoy aquí cuando me necesites.
 ━━━━━━━━━━━━━━━━━━━━━
 
 Creado con cariño por *Daniel*`
-    },
-    {
-      titulo: "🎉 SALUDO ALEGRE",
-      mensaje: `¡Wii! ¡Hola *{nombre}*! 🎊
+        },
+        {
+          titulo: "🎉 SALUDO ALEGRE",
+          mensaje: `¡Wii! ¡Hola *${nombreUsuario}*! 🎊
 
 ━━━━━━━━━━━━━━━━━━━━━
 
@@ -73,12 +77,12 @@ Soy el bot creado por *Daniel*
 ━━━━━━━━━━━━━━━━━━━━━
 
 Usa .menu para ver todo lo que puedo hacer`
-    },
-    {
-      titulo: "🤖 SALUDO ROBÓTICO",
-      mensaje: `*SISTEMA ACTIVADO* 🔌
+        },
+        {
+          titulo: "🤖 SALUDO ROBÓTICO",
+          mensaje: `*SISTEMA ACTIVADO* 🔌
 
-Usuario: *{nombre}*
+Usuario: *${nombreUsuario}*
 Creador: Daniel
 Estado: 100% operativo
 
@@ -86,28 +90,28 @@ Estado: 100% operativo
 .pokemon - Juego de Pokémon
 .sticker - Crear stickers
 .yta / ytv - Descargar multimedia`
-    },
-    {
-      titulo: "🐱 SALUDO GATUNO",
-      mensaje: `¡Miau *{nombre}*! 😺
+        },
+        {
+          titulo: "🐱 SALUDO GATUNO",
+          mensaje: `¡Miau *${nombreUsuario}*! 😺
 
 ━━━━━━━━━━━━━━━━━━━━━
 
 El bot de *Daniel* te saluda.
 ¿Necesitas algo?`
-    },
-    {
-      titulo: "🍵 SALUDO RELAJADO",
-      mensaje: `Tómate un respiro *{nombre}* ☕
+        },
+        {
+          titulo: "🍵 SALUDO RELAJADO",
+          mensaje: `Tómate un respiro *${nombreUsuario}* ☕
 
 ━━━━━━━━━━━━━━━━━━━━━
 
 *Daniel* me envió a saludarte.
 Relájate y dime en qué te ayudo.`
-    },
-    {
-      titulo: "💪 SALUDO MOTIVADOR",
-      mensaje: `¡Hola *{nombre}*! 💪
+        },
+        {
+          titulo: "💪 SALUDO MOTIVADOR",
+          mensaje: `¡Hola *${nombreUsuario}*! 💪
 
 ━━━━━━━━━━━━━━━━━━━━━
 
@@ -117,10 +121,10 @@ Tú puedes con todo hoy.
 ━━━━━━━━━━━━━━━━━━━━━
 
 ¿Necesitas algo para empezar?`
-    },
-    {
-      titulo: "🌸 SALUDO CORTÉS",
-      mensaje: `Un gusto saludarte *{nombre}* 🌸
+        },
+        {
+          titulo: "🌸 SALUDO CORTÉS",
+          mensaje: `Un gusto saludarte *${nombreUsuario}* 🌸
 
 ━━━━━━━━━━━━━━━━━━━━━
 
@@ -130,12 +134,8 @@ Para brindarte la mejor experiencia.
 ━━━━━━━━━━━━━━━━━━━━━
 
 ¿En qué puedo colaborar hoy?`
-    }
-  ],
-
-  run: async (sock, m, args) => {
-    try {
-      const nombreUsuario = m.pushName || 'Usuario'
+        }
+      ]
       
       // Diferentes saludos según el comando usado
       const comandoUsado = args[0] || m.text.split(' ')[0]?.toLowerCase() || ''
@@ -172,15 +172,13 @@ Para brindarte la mejor experiencia.
       // SALUDO ALEATORIO (para .hola, .hello, .hi)
       else {
         // Elegir un saludo aleatorio de la lista
-        const randomIndex = Math.floor(Math.random() * this.saludosRandom.length)
-        const saludoElegido = this.saludosRandom[randomIndex]
+        const randomIndex = Math.floor(Math.random() * saludosRandom.length)
+        const saludoElegido = saludosRandom[randomIndex]
         
-        // Reemplazar el placeholder {nombre} con el nombre del usuario
-        let textoSaludo = saludoElegido.mensaje.replace(/{nombre}/g, nombreUsuario)
-        
+        // El mensaje ya tiene el nombre incluido, solo armar el formato final
         mensaje = `╭─〔 ${saludoElegido.titulo} 〕─⬣
       
-${textoSaludo}
+${saludoElegido.mensaje}
 
 ╰────────────────⬣`
         
@@ -194,8 +192,9 @@ ${textoSaludo}
       }, { quoted: m })
       
     } catch (error) {
-      console.error('Error:', error)
-      await m.reply('《❌》 Error al saludar.')
+      console.error('Error detallado:', error)
+      // Mensaje de error más informativo
+      await m.reply(`《❌》 Error al saludar.\n\nDetalle: ${error.message || 'Error desconocido'}`)
     }
   }
 }
