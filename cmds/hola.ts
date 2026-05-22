@@ -6,144 +6,16 @@ export default {
     try {
       const nombreUsuario = m.pushName || 'Usuario'
       
-      // Lista de saludos aleatorios para .hola (NINGUNO menciona a Nao)
-      const saludosRandom = [
-        {
-          titulo: "👋 SALUDO CÁLIDO",
-          mensaje: `✨ ¡Hola *${nombreUsuario}*! ✨
-
-━━━━━━━━━━━━━━━━━━━━━
-
-💝 Soy tu asistente personal
-
-• Creador: *Daniel* 🧑‍💻
-• Estoy aquí para ayudarte
-
-━━━━━━━━━━━━━━━━━━━━━
-
-🎯 *¿Necesitas ayuda?*
-Usa .menu o .help`
-        },
-        {
-          titulo: "🌟 SALUDO ESPECIAL",
-          mensaje: `¡Hey *${nombreUsuario}*! 🌟
-
-━━━━━━━━━━━━━━━━━━━━━
-
-🤖 Bot creado por *Daniel*
-Listo para lo que necesites
-
-━━━━━━━━━━━━━━━━━━━━━
-
-🎮 *Comandos disponibles:*
-.pokemon - Captura Pokémon
-.sticker - Crea stickers`
-        },
-        {
-          titulo: "💫 SALUDO MATUTINO",
-          mensaje: `¡Buenos días *${nombreUsuario}*! ☀️
-
-━━━━━━━━━━━━━━━━━━━━━
-
-Que tengas un lindo día.
-*Daniel* me creó para ayudarte.
-
-━━━━━━━━━━━━━━━━━━━━━
-
-¿En qué puedo asistirte hoy?`
-        },
-        {
-          titulo: "🌙 SALUDO NOCTURNO",
-          mensaje: `Buenas noches *${nombreUsuario}* 🌙
-
-━━━━━━━━━━━━━━━━━━━━━
-
-Descansa bien.
-Estoy aquí cuando me necesites.
-
-━━━━━━━━━━━━━━━━━━━━━
-
-Creado con cariño por *Daniel*`
-        },
-        {
-          titulo: "🎉 SALUDO ALEGRE",
-          mensaje: `¡Wii! ¡Hola *${nombreUsuario}*! 🎊
-
-━━━━━━━━━━━━━━━━━━━━━
-
-Soy el bot creado por *Daniel*
-¡Vamos a divertirnos!
-
-━━━━━━━━━━━━━━━━━━━━━
-
-Usa .menu para ver todo lo que puedo hacer`
-        },
-        {
-          titulo: "🤖 SALUDO ROBÓTICO",
-          mensaje: `*SISTEMA ACTIVADO* 🔌
-
-Usuario: *${nombreUsuario}*
-Creador: Daniel
-Estado: 100% operativo
-
-*COMANDOS DISPONIBLES* 📟
-.pokemon - Juego de Pokémon
-.sticker - Crear stickers
-.yta / ytv - Descargar multimedia`
-        },
-        {
-          titulo: "🐱 SALUDO GATUNO",
-          mensaje: `¡Miau *${nombreUsuario}*! 😺
-
-━━━━━━━━━━━━━━━━━━━━━
-
-El bot de *Daniel* te saluda.
-¿Necesitas algo?`
-        },
-        {
-          titulo: "🍵 SALUDO RELAJADO",
-          mensaje: `Tómate un respiro *${nombreUsuario}* ☕
-
-━━━━━━━━━━━━━━━━━━━━━
-
-*Daniel* me envió a saludarte.
-Relájate y dime en qué te ayudo.`
-        },
-        {
-          titulo: "💪 SALUDO MOTIVADOR",
-          mensaje: `¡Hola *${nombreUsuario}*! 💪
-
-━━━━━━━━━━━━━━━━━━━━━
-
-Tú puedes con todo hoy.
-*Daniel* y yo confiamos en ti.
-
-━━━━━━━━━━━━━━━━━━━━━
-
-¿Necesitas algo para empezar?`
-        },
-        {
-          titulo: "🌸 SALUDO CORTÉS",
-          mensaje: `Un gusto saludarte *${nombreUsuario}* 🌸
-
-━━━━━━━━━━━━━━━━━━━━━
-
-Soy el asistente creado por *Daniel*
-Para brindarte la mejor experiencia.
-
-━━━━━━━━━━━━━━━━━━━━━
-
-¿En qué puedo colaborar hoy?`
-        }
-      ]
-      
-      // Diferentes saludos según el comando usado
-      const comandoUsado = args[0] || m.text.split(' ')[0]?.toLowerCase() || ''
+      // Detectar correctamente qué comando se usó
+      const comandoOriginal = m.text.split(' ')[0]?.toLowerCase() || ''
+      const esPresentacion = comandoOriginal === '.presentate' || 
+                            comandoOriginal === '.quienes' || 
+                            comandoOriginal === '.info'
       
       let mensaje = ''
       
-      // PRESENTACIÓN OFICIAL (solo para .presentate, .quienes, .info)
-      if (comandoUsado === 'presentate' || comandoUsado === 'quienes' || comandoUsado === 'info') {
+      // === PRESENTACIÓN OFICIAL (solo para .presentate, .quienes, .info) ===
+      if (esPresentacion) {
         mensaje = `╭─〔 📋 PRESENTACIÓN OFICIAL 〕─⬣
       
 👋 ¡Hola *${nombreUsuario}*! Mucho gusto.
@@ -158,7 +30,7 @@ Para brindarte la mejor experiencia.
 ━━━━━━━━━━━━━━━━━━━━━
 
 📌 *Comandos básicos:*
-.hola - Ver este mensaje
+.hola - Saludo aleatorio
 .pokemon - Juego de Pokémon
 .sticker - Crea stickers
 .yta / ytv - Descarga multimedia
@@ -169,21 +41,58 @@ Para brindarte la mejor experiencia.
 
 ╰────────────────⬣`
       } 
-      // SALUDO ALEATORIO (para .hola, .hello, .hi)
-      else {
-        // Elegir un saludo aleatorio de la lista
-        const randomIndex = Math.floor(Math.random() * saludosRandom.length)
-        const saludoElegido = saludosRandom[randomIndex]
-        
-        // El mensaje ya tiene el nombre incluido, solo armar el formato final
-        mensaje = `╭─〔 ${saludoElegido.titulo} 〕─⬣
       
-${saludoElegido.mensaje}
-
-╰────────────────⬣`
+      // === SALUDOS ALEATORIOS (solo para .hola, .hello, .hi) ===
+      else {
+        const saludosRandom = [
+          {
+            titulo: "👋 SALUDO CÁLIDO",
+            texto: `✨ ¡Hola *${nombreUsuario}*! ✨\n\n💝 Soy tu asistente personal\n• Creador: *Daniel* 🧑‍💻\n• Estoy aquí para ayudarte\n\n🎯 Usa .menu para ver comandos`
+          },
+          {
+            titulo: "🌟 SALUDO ESPECIAL",
+            texto: `¡Hey *${nombreUsuario}*! 🌟\n\n🤖 Bot creado por *Daniel*\nListo para lo que necesites\n\n🎮 .pokemon - Captura Pokémon`
+          },
+          {
+            titulo: "💫 SALUDO MATUTINO",
+            texto: `¡Buenos días *${nombreUsuario}*! ☀️\n\nQue tengas un lindo día.\n*Daniel* me creó para ayudarte.\n\n¿En qué puedo asistirte hoy?`
+          },
+          {
+            titulo: "🌙 SALUDO NOCTURNO",
+            texto: `Buenas noches *${nombreUsuario}* 🌙\n\nDescansa bien.\nEstoy aquí cuando me necesites.\n\nCreado con cariño por *Daniel*`
+          },
+          {
+            titulo: "🎉 SALUDO ALEGRE",
+            texto: `¡Wii! ¡Hola *${nombreUsuario}*! 🎊\n\nSoy el bot creado por *Daniel*\n¡Vamos a divertirnos!\n\nUsa .menu para ver todo lo que puedo hacer`
+          },
+          {
+            titulo: "🤖 SALUDO ROBÓTICO",
+            texto: `*SISTEMA ACTIVADO* 🔌\n\nUsuario: *${nombreUsuario}*\nCreador: Daniel\nEstado: 100% operativo\n\n*COMANDOS:* .pokemon .sticker .yta`
+          },
+          {
+            titulo: "🐱 SALUDO GATUNO",
+            texto: `¡Miau *${nombreUsuario}*! 😺\n\nEl bot de *Daniel* te saluda.\n¿Necesitas algo?`
+          },
+          {
+            titulo: "🍵 SALUDO RELAJADO",
+            texto: `Tómate un respiro *${nombreUsuario}* ☕\n\n*Daniel* me envió a saludarte.\nRelájate y dime en qué te ayudo.`
+          },
+          {
+            titulo: "💪 SALUDO MOTIVADOR",
+            texto: `¡Hola *${nombreUsuario}*! 💪\n\nTú puedes con todo hoy.\n*Daniel* y yo confiamos en ti.\n\n¿Necesitas algo para empezar?`
+          },
+          {
+            titulo: "🌸 SALUDO CORTÉS",
+            texto: `Un gusto saludarte *${nombreUsuario}* 🌸\n\nSoy el asistente creado por *Daniel*\nPara brindarte la mejor experiencia.\n\n¿En qué puedo colaborar hoy?`
+          }
+        ]
         
-        // Mostrar en consola qué saludo salió (para debug)
-        console.log(`Saludo aleatorio para ${nombreUsuario}: ${saludoElegido.titulo}`)
+        const randomIndex = Math.floor(Math.random() * saludosRandom.length)
+        const saludo = saludosRandom[randomIndex]
+        
+        mensaje = `╭─〔 ${saludo.titulo} 〕─⬣\n\n${saludo.texto}\n\n╰────────────────⬣`
+        
+        console.log(`[DEBUG] Comando usado: ${comandoOriginal} | Saludo: ${saludo.titulo}`)
       }
       
       await sock.sendMessage(m.chat, {
@@ -192,9 +101,8 @@ ${saludoElegido.mensaje}
       }, { quoted: m })
       
     } catch (error) {
-      console.error('Error detallado:', error)
-      // Mensaje de error más informativo
-      await m.reply(`《❌》 Error al saludar.\n\nDetalle: ${error.message || 'Error desconocido'}`)
+      console.error('Error:', error)
+      await m.reply('《❌》 Error al saludar.')
     }
   }
 }
