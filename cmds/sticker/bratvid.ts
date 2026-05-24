@@ -1,4 +1,4 @@
-import fs from 'fs'
+import { promises as fs } from 'fs'
 import path from 'path'
 import { exec } from 'child_process'
 import util from 'util'
@@ -25,7 +25,7 @@ export default {
       
       console.log(`[BRATVID] URL: ${apiUrl}`)
 
-      // === PASO 1: Descargar lo que devuelve la API ===
+      // Descargar video
       const response = await fetch(apiUrl, { timeout: 30000 })
       
       if (!response.ok) {
@@ -37,87 +37,78 @@ export default {
       
       console.log(`[BRATVID] Tipo: ${contentType}, Tamaño: ${videoBuffer.length} bytes`)
 
-      if (videoBuffer.length < 1000) {
-        throw new Error('El archivo está vacío o es muy pequeño')
+      // === VALIDACIÓN CRÍTICA ===
+      if (videoBuffer.length < 5000) {
+        throw new Error(`El archivo es muy pequeño (${videoBuffer.length} bytes) - Posiblemente corrupto`)
       }
 
-      // === PASO 2: Determinar y convertir a formato válido ===
-      let stickerBuffer = videoBuffer
-      let mimetype = 'video/mp4'
-
-      // Si es WEBM, perfecto para stickers
-      if (contentType.includes('webm')) {
-        mimetype = 'video/webm'
-        console.log('[BRATVID] Es WEBM, compatible con stickers')
-      }
-      // Si es MP4, intentar enviar directamente
-      else if (contentType.includes('mp4')) {
-        mimetype = 'video/mp4'
-        console.log('[BRATVID] Es MP4, intentando enviar como sticker')
-      }
-      // Si es otra cosa, forzar conversión a MP4
-      else {
-        console.log('[BRATVID] Formato desconocido, intentando convertir...')
-        // Guardar temporalmente
-        const tempInput = `/tmp/brat_input_${Date.now()}`
-        const tempOutput = `/tmp/brat_output_${Date.now()}.mp4`
-        
-        fs.writeFileSync(tempInput, videoBuffer)
-        
-        try {
-          // Convertir a MP4 con ffmpeg (si está instalado)
-          await execPromise(`ffmpeg -i ${tempInput} -c copy -movflags +faststart ${tempOutput} -y`)
-          stickerBuffer = fs.readFileSync(tempOutput)
-          mimetype = 'video/mp4'
-          console.log('[BRATVID] Conversión exitosa')
-        } catch (convError) {
-          console.log('[BRATVID] Conversión falló:', convError.message)
-        } finally {
-          // Limpiar archivos temporales
-          try {
-            fs.unlinkSync(tempInput)
-            fs.unlinkSync(tempOutput)
-          } catch(e) {}
-        }
+      // Verificar que sea un MP4 válido (tiene cabecera ftyp)
+      const isMp4 = videoBuffer.toString('hex', 4, 8) === '66747970' // 'ftyp' en hex
+      if (!isMp4) {
+        console.log('[BRATVID] No es un MP4 válido, cabecera:', videoBuffer.toString('hex', 0, 20))
+        throw new Error('El archivo no es un MP4 válido')
       }
 
-      // === PASO 3: Enviar como sticker (INTENTO 1 - Directo) ===
+      // === INTENTO 1: Enviar como sticker MP4 ===
       try {
-        await sock.sendMessage(m.chat, {
-          sticker: stickerBuffer,
-          mimetype: mimetype
+        const result = await sock.sendMessage(m.chat, {
+          sticker: videoBuffer,
+          mimetype: 'video/mp4'
         }, { quoted: m })
         
-        console.log('[BRATVID] Sticker animado enviado con éxito')
-        return
+        console.log('[BRATVID] Enviado como sticker, resultado:', result ? 'OK' : 'Sin respuesta')
+        return // Si funciona, terminamos
       } catch (stickerError) {
-        console.log('[BRATVID] Error al enviar sticker:', stickerError.message)
+        console.log('[BRATVID] Error como sticker:', stickerError.message)
         
-        // === INTENTO 2 - Como GIF/Video con instrucciones ===
+        // === INTENTO 2: Enviar como GIF (video con gifPlayback) ===
+        try {
+          await sock.sendMessage(m.chat, {
+            video: videoBuffer,
+            mimetype: 'video/mp4',
+            gifPlayback: true,
+            caption: `🎬 *${texto}*\n\n🔄 No se pudo enviar como sticker, pero aquí está como GIF`
+          }, { quoted: m })
+          console.log('[BRATVID] Enviado como GIF')
+          return
+        } catch (gifError) {
+          console.log('[BRATVID] Error como GIF:', gifError.message)
+        }
+        
+        // === INTENTO 3: Guardar y reenviar como documento (para debug) ===
+        const tempFile = `/tmp/brat_${Date.now()}.mp4`
+        await fs.writeFile(tempFile, videoBuffer)
+        
         await sock.sendMessage(m.chat, {
-          video: stickerBuffer,
+          document: videoBuffer,
           mimetype: 'video/mp4',
-          gifPlayback: true,
-          caption: `🎬 *${texto}*\n\n⚠️ No se pudo enviar como sticker animado.\n\n*Para convertirlo manualmente a sticker:*\n1. Mantén presionado este video\n2. Selecciona "Convertir a sticker" (si tu WhatsApp lo permite)\n3. O usa el comando \`.sticker\` respondiendo a este video`
+          fileName: `brat_${texto.slice(0, 20)}.mp4`,
+          caption: `🎬 *${texto}*\n\n⚠️ No se pudo enviar como sticker ni GIF.\n\n📁 Archivo original adjunto.\n💡 Intenta convertirlo manualmente a sticker.`
         }, { quoted: m })
+        
+        // Limpiar
+        await fs.unlink(tempFile).catch(() => {})
       }
 
     } catch (error) {
       console.error('[BRATVID ERROR]', error)
       
-      // === Mostrar error detallado ===
-      let detalles = ''
-      if (error.message.includes('fetch')) detalles = 'No se pudo conectar a la API'
-      else if (error.message.includes('HTTP 404')) detalles = 'La API de bratvideo no existe (Error 404)'
-      else if (error.message.includes('timeout')) detalles = 'La API tardó demasiado en responder'
-      else if (error.message.includes('vacío') || error.message.includes('1000')) detalles = 'La API devolvió un archivo vacío'
-      else detalles = error.message
+      let mensajeError = '《❌》 *Error al generar el sticker animado*\n\n'
       
-      await m.reply(`《❌》 *No se pudo generar el sticker animado*\n\n🔍 *Razón:* ${detalles}\n\n💡 *Alternativas:*\n• Usa \`.brat ${texto}\` para sticker normal\n• Revisa si la API está activa\n• Espera unos minutos y reintenta`)
+      if (error.message.includes('pequeño') || error.message.includes('bytes')) {
+        mensajeError += `📉 *Archivo corrupto o muy pequeño*\n\nLa API devolvió un archivo de ${error.message.match(/\d+/)?.[0] || 'tamaño'} bytes, que es insuficiente.\n\n💡 *Posible solución:*\n• Espera unos minutos y reintenta\n• Usa texto diferente\n• Prueba con \`.brat ${texto}\` (sticker normal)`
+      } else if (error.message.includes('MP4 válido')) {
+        mensajeError += `🔧 *Formato inválido*\n\nLa API no devolvió un MP4 válido.\n\n💡 *Alternativa:* Usa \`.brat ${texto}\` para sticker normal`
+      } else if (error.message.includes('fetch') || error.message.includes('ECONNREFUSED')) {
+        mensajeError += `📡 *Error de conexión*\nNo se pudo conectar a la API.\n\n💡 *Espera unos minutos y reintenta*`
+      } else {
+        mensajeError += `⚠️ *Error técnico:* ${error.message}\n\n💡 *Alternativa:* Usa \`.brat ${texto}\``
+      }
+      
+      await m.reply(mensajeError)
       
       // Fallback a sticker normal
       try {
-        await m.reply('《🔄》 *Intentando con sticker de imagen...*')
         const imgUrl = `https://api.delirius.store/canvas/brat?text=${encodeURIComponent(texto).replace(/%20/g, '+')}`
         const imgRes = await fetch(imgUrl)
         if (imgRes.ok) {
@@ -126,9 +117,10 @@ export default {
             sticker: imgBuf,
             mimetype: 'image/webp'
           }, { quoted: m })
+          console.log('[BRATVID] Fallback a sticker normal exitoso')
         }
       } catch (fallbackError) {
-        await m.reply('《❌》 Tampoco funcionó la versión imagen. La API puede estar caída.')
+        console.log('[BRATVID] Fallback falló:', fallbackError.message)
       }
     }
   }
