@@ -1,5 +1,4 @@
 import sharp from 'sharp'
-import { promises as fs } from 'fs'
 
 export default {
   command: ['stickerly', 'sly', 'stickersearch'],
@@ -7,228 +6,157 @@ export default {
 
   run: async (sock, m, args) => {
     try {
-      // Verificar si hay argumentos
+      // Si no hay texto de búsqueda
       if (!args || args.length === 0) {
-        await m.reply(`🎯 *Buscador de Stickers - Sticker.ly*
+        await m.reply(`🎯 *Buscador Automático de Stickers*
 
-📌 *Comandos disponibles:*
-
-🔍 *Buscar stickers:*
-\`.stickerly buscar my melody\`
-\`.sly search kuromi\`
-
-📦 *Descargar pack por URL:*
-\`.stickerly url https://sticker.ly/s/MPTYYK\`
+📌 *Usa:* \`.stickerly TEXTO\`
 
 💡 *Ejemplos:*
-\`.stickerly buscar sanrio\`
-\`.sly url https://sticker.ly/s/5LAA3M\`
+• \`.stickerly my melody\`
+• \`.stickerly monos\`
+• \`.stickerly sanrio\`
+• \`.stickerly kuromi\`
 
-*Los stickers se enviarán automáticamente como stickers de WhatsApp*`)
-
+*El bot buscará y enviará los stickers automáticamente* ✨`)
         return
       }
 
-      const action = args[0].toLowerCase()
-      const query = args.slice(1).join(' ')
+      const query = args.join(' ')
+      
+      await m.reply(`🔍 *Buscando stickers:* "${query}"\n⏱️ Procesando...`)
 
-      // === BÚSQUEDA DE STICKERS ===
-      if (action === 'buscar' || action === 'search') {
-        if (!query) {
-          await m.reply('📝 *Escribe lo que quieres buscar*\n\nEjemplo: `.stickerly buscar my melody`')
-          return
-        }
+      // === BUSCAR EN LA API ===
+      const searchUrl = `https://api.delirius.store/search/stickerly?query=${encodeURIComponent(query)}`
+      console.log(`[STICKERLY] Buscando: ${searchUrl}`)
 
-        await m.reply(`🔍 *Buscando stickers:* ${query}\n⏱️ Esto puede tomar unos segundos...`)
+      const searchResponse = await fetch(searchUrl)
+      
+      if (!searchResponse.ok) {
+        throw new Error(`Error HTTP: ${searchResponse.status}`)
+      }
 
-        const searchUrl = `https://api.delirius.store/search/stickerly?query=${encodeURIComponent(query)}`
-        console.log(`[STICKERLY] Buscando: ${searchUrl}`)
+      const searchResult = await searchResponse.json()
+      
+      if (!searchResult.status || !searchResult.data || searchResult.data.length === 0) {
+        await m.reply(`❌ *No se encontraron stickers* para "${query}"\n\n💡 *Prueba con otras palabras clave* (ej: "cute", "anime", "kawaii")`)
+        return
+      }
 
-        const response = await fetch(searchUrl)
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`)
-        }
+      // Tomar el PRIMER resultado (el más relevante)
+      const primerPack = searchResult.data[0]
+      const packUrl = primerPack.url
+      const packName = primerPack.name
+      const packAuthor = primerPack.author
+      const packCount = primerPack.sticker_count
+      const isAnimated = primerPack.isAnimated
 
-        const result = await response.json()
-        
-        if (!result.status || !result.data || result.data.length === 0) {
-          await m.reply(`❌ *No se encontraron stickers* para "${query}"\n\n💡 *Intenta con otras palabras clave*`)
-          return
-        }
+      await m.reply(`✅ *Pack encontrado!*
 
-        // Mostrar resultados (máximo 10 para no saturar)
-        const resultados = result.data.slice(0, 10)
-        
-        let mensaje = `🎯 *Resultados para:* "${query}"\n\n`
-        
-        for (let i = 0; i < resultados.length; i++) {
-          const pack = resultados[i]
-          const animado = pack.isAnimated ? '🎬 Animado' : '🖼️ Estático'
-          mensaje += `${i + 1}. *${pack.name.substring(0, 40)}*\n`
-          mensaje += `   👤 ${pack.author} | 📦 ${pack.sticker_count} stickers | ${animado}\n`
-          mensaje += `   🔗 \`${pack.url}\`\n\n`
-        }
-        
-        mensaje += `📌 *Para descargar un pack:*\n\`.stickerly url URL_DEL_PACK\`\n\n💡 *Ejemplo:* \`.stickerly url ${resultados[0].url}\``
-        
-        await m.reply(mensaje)
+📌 *${packName.substring(0, 40)}*
+👤 *Autor:* ${packAuthor}
+📦 *Stickers:* ${packCount}
+🎬 *Tipo:* ${isAnimated ? 'Animado' : 'Estático'}
 
-      // === DESCARGA POR URL ===
-      } else if (action === 'url' || action === 'descargar' || action === 'download') {
-        const url = query.trim()
-        
-        if (!url || !url.includes('sticker.ly/s/')) {
-          await m.reply('🔗 *Envía una URL válida de Sticker.ly*\n\nEjemplo: `.stickerly url https://sticker.ly/s/MPTYYK`\n\n*La URL debe tener el formato:* `sticker.ly/s/XXXXX`')
-          return
-        }
+🔄 *Descargando y enviando stickers...*`)
 
-        await m.reply(`📦 *Descargando pack de stickers...*\n⏱️ Obteniendo información del pack...`)
+      // === DESCARGAR EL PACK ===
+      const downloadUrl = `https://api.delirius.store/download/stickerly?url=${encodeURIComponent(packUrl)}`
+      console.log(`[STICKERLY] Descargando pack: ${downloadUrl}`)
 
-        const downloadUrl = `https://api.delirius.store/download/stickerly?url=${encodeURIComponent(url)}`
-        console.log(`[STICKERLY] Descargando: ${downloadUrl}`)
+      const downloadResponse = await fetch(downloadUrl)
+      
+      if (!downloadResponse.ok) {
+        throw new Error(`Error al descargar pack: ${downloadResponse.status}`)
+      }
 
-        const response = await fetch(downloadUrl)
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`)
-        }
+      const downloadResult = await downloadResponse.json()
+      
+      if (!downloadResult.status || !downloadResult.data) {
+        throw new Error('No se pudo obtener los stickers del pack')
+      }
 
-        const result = await response.json()
-        
-        if (!result.status || !result.data) {
-          throw new Error('No se pudo obtener el pack')
-        }
+      const stickers = downloadResult.data.stickers || []
+      const totalStickers = Math.min(stickers.length, 12) // Máximo 12 stickers
 
-        const pack = result.data
-        const stickers = pack.stickers || []
-        const isAnimated = pack.isAnimated
-        const totalStickers = stickers.length
+      if (totalStickers === 0) {
+        await m.reply('❌ *El pack no tiene stickers válidos*')
+        return
+      }
 
-        await m.reply(`✅ *Pack encontrado!*
-
-📌 *Nombre:* ${pack.name}
-👤 *Autor:* ${pack.author}
-📦 *Stickers:* ${totalStickers}
-🎬 *Tipo:* ${isAnimated ? 'Animado (WEBM)' : 'Estático (PNG/WEBP)'}
-👀 *Vistas:* ${pack.viewCount || 'N/A'}
-📥 *Descargas:* ${pack.exportCount || 'N/A'}
-
-🔄 *Enviando stickers...* (Esto puede tomar un momento)`)
-
-        // Enviar stickers uno por uno (máximo 10 para no saturar)
-        const maxStickers = Math.min(totalStickers, 10)
-        let enviados = 0
-        let fallidos = 0
-
-        for (let i = 0; i < maxStickers; i++) {
-          try {
-            const stickerUrl = stickers[i]
-            console.log(`[STICKERLY] Procesando sticker ${i + 1}/${maxStickers}: ${stickerUrl}`)
-            
-            // Descargar el sticker
-            const stickerResponse = await fetch(stickerUrl)
-            
-            if (!stickerResponse.ok) {
-              throw new Error(`HTTP ${stickerResponse.status}`)
-            }
-            
-            let stickerBuffer = Buffer.from(await stickerResponse.arrayBuffer())
-            
-            // === CONVERSIÓN FORZADA A FORMATO VÁLIDO ===
-            let finalBuffer = stickerBuffer
-            let mimetype = 'image/webp'
-            
-            try {
-              if (isAnimated) {
-                // Para stickers animados, intentar mantener como webm
-                mimetype = 'video/webm'
-                finalBuffer = stickerBuffer
-                console.log(`[STICKERLY] Sticker animado, formato: ${mimetype}`)
-              } else {
-                // Convertir PNG/WEBP a WEBP válido con sharp
-                finalBuffer = await sharp(stickerBuffer)
-                  .resize(512, 512, {
-                    fit: 'contain',
-                    background: { r: 255, g: 255, b: 255, alpha: 0 }
-                  })
-                  .webp({
-                    quality: 85,
-                    effort: 4
-                  })
-                  .toBuffer()
-                
-                console.log(`[STICKERLY] Convertido: ${stickerBuffer.length} -> ${finalBuffer.length} bytes`)
-                mimetype = 'image/webp'
-              }
-            } catch (convError) {
-              console.log(`[STICKERLY] Error conversión: ${convError.message}, usando original`)
-              // Si falla la conversión, intentar con el original
-              finalBuffer = stickerBuffer
-              mimetype = 'image/png'
-            }
-            
-            // Enviar como sticker
-            await sock.sendMessage(m.chat, {
-              sticker: finalBuffer,
-              mimetype: mimetype
-            }, { quoted: m })
-            
-            enviados++
-            
-            // Pequeña pausa para evitar rate limiting
-            await new Promise(resolve => setTimeout(resolve, 800))
-            
-          } catch (stickerError) {
-            console.error(`[STICKERLY] Error con sticker ${i + 1}:`, stickerError.message)
-            fallidos++
+      // Enviar stickers uno por uno
+      let enviados = 0
+      
+      for (let i = 0; i < totalStickers; i++) {
+        try {
+          const stickerUrl = stickers[i]
+          console.log(`[STICKERLY] Enviando sticker ${i + 1}/${totalStickers}`)
+          
+          // Descargar sticker
+          const stickerRes = await fetch(stickerUrl)
+          
+          if (!stickerRes.ok) {
+            console.log(`❌ Falló descarga sticker ${i + 1}`)
+            continue
           }
+          
+          let stickerBuffer = Buffer.from(await stickerRes.arrayBuffer())
+          
+          // Convertir a WEBP si es necesario
+          try {
+            stickerBuffer = await sharp(stickerBuffer)
+              .resize(512, 512, {
+                fit: 'contain',
+                background: { r: 255, g: 255, b: 255, alpha: 0 }
+              })
+              .webp({ quality: 85 })
+              .toBuffer()
+          } catch (convError) {
+            console.log(`⚠️ No se pudo convertir sticker ${i + 1}, usando original`)
+          }
+          
+          // Enviar como sticker
+          await sock.sendMessage(m.chat, {
+            sticker: stickerBuffer,
+            mimetype: 'image/webp'
+          }, { quoted: m })
+          
+          enviados++
+          
+          // Pequeña pausa entre stickers
+          await new Promise(resolve => setTimeout(resolve, 500))
+          
+        } catch (err) {
+          console.log(`❌ Error con sticker ${i + 1}:`, err.message)
         }
+      }
 
-        // Mensaje de resumen
-        let resumen = `✅ *Pack procesado!*\n\n`
-        resumen += `📦 *${pack.name}*\n`
-        resumen += `✅ Enviados: ${enviados}/${maxStickers} stickers\n`
+      // Mensaje final
+      if (enviados > 0) {
+        await m.reply(`✅ *Listo!* Se enviaron ${enviados} stickers de "${packName}"`)
         
-        if (fallidos > 0) {
-          resumen += `⚠️ Fallidos: ${fallidos}\n`
-          resumen += `\n💡 *Los stickers fallidos pueden ser por formato no compatible.*`
+        // Si hay más stickers en el pack, avisar
+        if (stickers.length > totalStickers) {
+          await m.reply(`💡 *El pack tiene ${stickers.length} stickers en total.*\nUsa \`.stickerly ${query}\` nuevamente para más.`)
         }
-        
-        if (totalStickers > maxStickers) {
-          resumen += `\n\n💡 *El pack tiene ${totalStickers} stickers en total.*\nPara más, ejecuta \`.stickerly url ${url}\` nuevamente.`
-        }
-        
-        await m.reply(resumen)
-
       } else {
-        await m.reply(`❌ *Comando no reconocido*
-
-📌 *Usa:*
-\`.stickerly buscar TEXTO\` - Para buscar stickers
-\`.stickerly url URL\` - Para descargar un pack
-
-💡 *Ejemplos:*
-\`.stickerly buscar my melody\`
-\`.stickerly url https://sticker.ly/s/MPTYYK\``)
+        await m.reply(`❌ *No se pudo enviar ningún sticker*\n\n💡 *Intenta con otra búsqueda* (ej: ".stickerly cute")`)
       }
 
     } catch (error) {
       console.error('[STICKERLY ERROR]', error)
       
-      let mensajeError = '❌ *Error al procesar la solicitud*\n\n'
+      let mensaje = '❌ *Error al buscar stickers*\n\n'
       
       if (error.message.includes('fetch') || error.message.includes('ECONNREFUSED')) {
-        mensajeError += '📡 *Error de conexión*\nNo se pudo conectar a la API de Sticker.ly.\n\n💡 *Intenta de nuevo más tarde*'
+        mensaje += '📡 *Error de conexión*\nNo se pudo conectar a la API de Sticker.ly.\n\n💡 *Intenta de nuevo más tarde*'
       } else if (error.message.includes('HTTP 404')) {
-        mensajeError += '🔗 *Pack no encontrado*\nLa URL puede ser inválida o el pack ha sido eliminado.\n\n💡 *Verifica la URL e intenta de nuevo*'
-      } else if (error.message.includes('sharp')) {
-        mensajeError += '🔧 *Error al convertir sticker*\n\n💡 *Puede ser un formato no compatible.*\nIntenta con otro pack o URL diferente.'
+        mensaje += '🔗 *No se encontró el pack*\n\n💡 *Intenta con otra palabra clave*'
       } else {
-        mensajeError += `⚠️ *Error:* ${error.message}\n\n💡 *Verifica que la URL sea correcta y vuelve a intentar*`
+        mensaje += `⚠️ *Error:* ${error.message}\n\n💡 *Prueba con otra búsqueda como:*\n• .stickerly cute\n• .stickerly anime\n• .stickerly kawaii`
       }
       
-      await m.reply(mensajeError)
+      await m.reply(mensaje)
     }
   }
 }
