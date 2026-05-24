@@ -1,5 +1,5 @@
+import sharp from 'sharp'
 import { promises as fs } from 'fs'
-import path from 'path'
 
 export default {
   command: ['stickerly', 'sly', 'stickersearch'],
@@ -116,15 +116,15 @@ export default {
 
 🔄 *Enviando stickers...* (Esto puede tomar un momento)`)
 
-        // Enviar stickers uno por uno (máximo 15 para no saturar)
-        const maxStickers = Math.min(totalStickers, 15)
+        // Enviar stickers uno por uno (máximo 10 para no saturar)
+        const maxStickers = Math.min(totalStickers, 10)
         let enviados = 0
         let fallidos = 0
 
         for (let i = 0; i < maxStickers; i++) {
           try {
             const stickerUrl = stickers[i]
-            console.log(`[STICKERLY] Descargando sticker ${i + 1}/${maxStickers}: ${stickerUrl}`)
+            console.log(`[STICKERLY] Procesando sticker ${i + 1}/${maxStickers}: ${stickerUrl}`)
             
             // Descargar el sticker
             const stickerResponse = await fetch(stickerUrl)
@@ -134,29 +134,50 @@ export default {
             }
             
             let stickerBuffer = Buffer.from(await stickerResponse.arrayBuffer())
-            const contentType = stickerResponse.headers.get('content-type') || ''
             
-            // Determinar mimetype
+            // === CONVERSIÓN FORZADA A FORMATO VÁLIDO ===
+            let finalBuffer = stickerBuffer
             let mimetype = 'image/webp'
-            if (contentType.includes('png')) mimetype = 'image/png'
-            else if (contentType.includes('webp')) mimetype = 'image/webp'
-            else if (contentType.includes('gif')) mimetype = 'image/gif'
             
-            // Si es animado, usar video/webm
-            if (isAnimated) {
-              mimetype = 'video/webm'
+            try {
+              if (isAnimated) {
+                // Para stickers animados, intentar mantener como webm
+                mimetype = 'video/webm'
+                finalBuffer = stickerBuffer
+                console.log(`[STICKERLY] Sticker animado, formato: ${mimetype}`)
+              } else {
+                // Convertir PNG/WEBP a WEBP válido con sharp
+                finalBuffer = await sharp(stickerBuffer)
+                  .resize(512, 512, {
+                    fit: 'contain',
+                    background: { r: 255, g: 255, b: 255, alpha: 0 }
+                  })
+                  .webp({
+                    quality: 85,
+                    effort: 4
+                  })
+                  .toBuffer()
+                
+                console.log(`[STICKERLY] Convertido: ${stickerBuffer.length} -> ${finalBuffer.length} bytes`)
+                mimetype = 'image/webp'
+              }
+            } catch (convError) {
+              console.log(`[STICKERLY] Error conversión: ${convError.message}, usando original`)
+              // Si falla la conversión, intentar con el original
+              finalBuffer = stickerBuffer
+              mimetype = 'image/png'
             }
             
             // Enviar como sticker
             await sock.sendMessage(m.chat, {
-              sticker: stickerBuffer,
+              sticker: finalBuffer,
               mimetype: mimetype
             }, { quoted: m })
             
             enviados++
             
             // Pequeña pausa para evitar rate limiting
-            await new Promise(resolve => setTimeout(resolve, 500))
+            await new Promise(resolve => setTimeout(resolve, 800))
             
           } catch (stickerError) {
             console.error(`[STICKERLY] Error con sticker ${i + 1}:`, stickerError.message)
@@ -165,16 +186,17 @@ export default {
         }
 
         // Mensaje de resumen
-        let resumen = `✅ *Pack descargado correctamente!*\n\n`
+        let resumen = `✅ *Pack procesado!*\n\n`
         resumen += `📦 *${pack.name}*\n`
         resumen += `✅ Enviados: ${enviados}/${maxStickers} stickers\n`
         
         if (fallidos > 0) {
           resumen += `⚠️ Fallidos: ${fallidos}\n`
+          resumen += `\n💡 *Los stickers fallidos pueden ser por formato no compatible.*`
         }
         
         if (totalStickers > maxStickers) {
-          resumen += `\n💡 *El pack tiene ${totalStickers} stickers en total.*\nPara más, usa otro comando o descarga manualmente.`
+          resumen += `\n\n💡 *El pack tiene ${totalStickers} stickers en total.*\nPara más, ejecuta \`.stickerly url ${url}\` nuevamente.`
         }
         
         await m.reply(resumen)
@@ -200,6 +222,8 @@ export default {
         mensajeError += '📡 *Error de conexión*\nNo se pudo conectar a la API de Sticker.ly.\n\n💡 *Intenta de nuevo más tarde*'
       } else if (error.message.includes('HTTP 404')) {
         mensajeError += '🔗 *Pack no encontrado*\nLa URL puede ser inválida o el pack ha sido eliminado.\n\n💡 *Verifica la URL e intenta de nuevo*'
+      } else if (error.message.includes('sharp')) {
+        mensajeError += '🔧 *Error al convertir sticker*\n\n💡 *Puede ser un formato no compatible.*\nIntenta con otro pack o URL diferente.'
       } else {
         mensajeError += `⚠️ *Error:* ${error.message}\n\n💡 *Verifica que la URL sea correcta y vuelve a intentar*`
       }
