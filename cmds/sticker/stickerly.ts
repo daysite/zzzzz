@@ -18,7 +18,7 @@ export default {
 • \`.stickerly sanrio\`
 • \`.stickerly kuromi\`
 
-*El bot buscará y enviará los stickers automáticamente* ✨`)
+*El bot buscará y enviará 5 stickers automáticamente* ✨`)
         return
       }
 
@@ -55,10 +55,10 @@ export default {
 
 📌 *${packName.substring(0, 40)}*
 👤 *Autor:* ${packAuthor}
-📦 *Stickers:* ${packCount}
+📦 *Stickers disponibles:* ${packCount}
 🎬 *Tipo:* ${isAnimated ? 'Animado' : 'Estático'}
 
-🔄 *Descargando y enviando stickers...*`)
+🔄 *Descargando 5 stickers...*`)
 
       // === DESCARGAR EL PACK ===
       const downloadUrl = `https://api.delirius.store/download/stickerly?url=${encodeURIComponent(packUrl)}`
@@ -77,7 +77,7 @@ export default {
       }
 
       const stickers = downloadResult.data.stickers || []
-      const totalStickers = Math.min(stickers.length, 12) // Máximo 12 stickers
+      const totalStickers = Math.min(stickers.length, 5) // 🔥 LÍMITE: 5 STICKERS
 
       if (totalStickers === 0) {
         await m.reply('❌ *El pack no tiene stickers válidos*')
@@ -133,12 +133,13 @@ export default {
 
       // Mensaje final
       if (enviados > 0) {
-        await m.reply(`✅ *Listo!* Se enviaron ${enviados} stickers de "${packName}"`)
+        let mensajeFinal = `✅ *Listo!* Se enviaron ${enviados} stickers de "${packName.substring(0, 30)}"`
         
-        // Si hay más stickers en el pack, avisar
-        if (stickers.length > totalStickers) {
-          await m.reply(`💡 *El pack tiene ${stickers.length} stickers en total.*\nUsa \`.stickerly ${query}\` nuevamente para más.`)
+        if (stickers.length > 5) {
+          mensajeFinal += `\n\n💡 *El pack tiene ${stickers.length} stickers en total.*\nUsa \`.stickerly ${query}\` nuevamente para otros 5.`
         }
+        
+        await m.reply(mensajeFinal)
       } else {
         await m.reply(`❌ *No se pudo enviar ningún sticker*\n\n💡 *Intenta con otra búsqueda* (ej: ".stickerly cute")`)
       }
