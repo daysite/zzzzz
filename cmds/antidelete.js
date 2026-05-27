@@ -3,7 +3,7 @@
 // Almacenamiento de mensajes
 if (!global.msgStore) global.msgStore = {}
 
-// Función para reenviar mensajes (fuera del objeto)
+// Función para reenviar mensajes
 async function resendMessage(sock, chatId, deletedMsg, originalMsg) {
   try {
     const deleter = originalMsg.key?.participant || originalMsg.key?.remoteJid || 'Alguien'
@@ -15,37 +15,31 @@ async function resendMessage(sock, chatId, deletedMsg, originalMsg) {
     
     const msgObj = deletedMsg.message
     
-    console.log(`[REENVIANDO] Tipo de mensaje:`, msgObj ? Object.keys(msgObj)[0] : 'desconocido')
-    
-    // Detectar tipo de mensaje
+    // Detectar tipo de mensaje y extraer contenido
     if (msgObj?.imageMessage) {
       type = 'imagen'
-      content = msgObj.imageMessage.caption || 'Sin descripción'
+      content = msgObj.imageMessage.caption || ''
       try {
         mediaBuffer = await sock.downloadMediaMessage({ key: deletedMsg.key, message: msgObj })
-        console.log(`[IMAGEN] Descargada, tamaño: ${mediaBuffer.length} bytes`)
       } catch(e) { console.log('Error imagen:', e.message) }
     }
     else if (msgObj?.videoMessage) {
       type = 'video'
-      content = msgObj.videoMessage.caption || 'Sin descripción'
+      content = msgObj.videoMessage.caption || ''
       try {
         mediaBuffer = await sock.downloadMediaMessage({ key: deletedMsg.key, message: msgObj })
-        console.log(`[VIDEO] Descargado, tamaño: ${mediaBuffer.length} bytes`)
       } catch(e) { console.log('Error video:', e.message) }
     }
     else if (msgObj?.stickerMessage) {
       type = 'sticker'
       try {
         mediaBuffer = await sock.downloadMediaMessage({ key: deletedMsg.key, message: msgObj })
-        console.log(`[STICKER] Descargado, tamaño: ${mediaBuffer.length} bytes`)
       } catch(e) { console.log('Error sticker:', e.message) }
     }
     else if (msgObj?.audioMessage) {
       type = 'audio'
       try {
         mediaBuffer = await sock.downloadMediaMessage({ key: deletedMsg.key, message: msgObj })
-        console.log(`[AUDIO] Descargado, tamaño: ${mediaBuffer.length} bytes`)
       } catch(e) { console.log('Error audio:', e.message) }
     }
     else if (msgObj?.conversation) {
@@ -63,56 +57,53 @@ async function resendMessage(sock, chatId, deletedMsg, originalMsg) {
         mediaBuffer = await sock.downloadMediaMessage({ key: deletedMsg.key, message: msgObj })
       } catch(e) { console.log('Error documento:', e.message) }
     }
-    else {
-      content = 'Mensaje no soportado para reenviar'
-      type = 'desconocido'
-    }
     
     const nombreAutor = author?.split('@')[0] || 'Desconocido'
     const nombreDeleter = deleter?.split('@')[0] || 'Alguien'
     
+    // Formato simplificado que pediste
     const notificacion = `🔴 *MENSAJE ELIMINADO*
 
 👤 *Autor:* @${nombreAutor}
 🗑️ *Eliminado por:* @${nombreDeleter}
 📝 *Tipo:* ${type}
-${content ? `💬 *Contenido:*\n${content.substring(0, 300)}` : ''}
 
 🛡️ *Anti-Delete*`
     
-    // Reenviar según el tipo
+    // === REENVIAR PRIMERO EL CONTENIDO DEL MENSAJE ===
+    
+    // Si es sticker
     if (type === 'sticker' && mediaBuffer) {
       await sock.sendMessage(chatId, { sticker: mediaBuffer })
-      await sock.sendMessage(chatId, { text: notificacion, mentions: [author, deleter] })
-      console.log(`[REENVIADO] Sticker reenviado`)
     }
+    // Si es imagen
     else if (type === 'imagen' && mediaBuffer) {
-      await sock.sendMessage(chatId, { image: mediaBuffer, caption: notificacion, mentions: [author, deleter] })
-      console.log(`[REENVIADO] Imagen reenviada`)
+      await sock.sendMessage(chatId, { image: mediaBuffer, caption: content || '' })
     }
+    // Si es video
     else if (type === 'video' && mediaBuffer) {
-      await sock.sendMessage(chatId, { video: mediaBuffer, caption: notificacion, mentions: [author, deleter] })
-      console.log(`[REENVIADO] Video reenviado`)
+      await sock.sendMessage(chatId, { video: mediaBuffer, caption: content || '' })
     }
+    // Si es audio
     else if (type === 'audio' && mediaBuffer) {
       await sock.sendMessage(chatId, { audio: mediaBuffer, mimetype: 'audio/mp4' })
-      await sock.sendMessage(chatId, { text: notificacion, mentions: [author, deleter] })
-      console.log(`[REENVIADO] Audio reenviado`)
     }
+    // Si es documento
     else if (type === 'documento' && mediaBuffer) {
-      await sock.sendMessage(chatId, { document: mediaBuffer, fileName: content, caption: notificacion, mentions: [author, deleter] })
-      console.log(`[REENVIADO] Documento reenviado`)
+      await sock.sendMessage(chatId, { document: mediaBuffer, fileName: content })
     }
-    else {
-      await sock.sendMessage(chatId, { text: notificacion, mentions: [author, deleter] })
-      console.log(`[REENVIADO] Texto reenviado`)
+    // Si es texto o tiene contenido
+    else if (content && content.trim() !== '') {
+      await sock.sendMessage(chatId, { text: content })
     }
     
-    return true
+    // === LUEGO ENVIAR LA NOTIFICACIÓN ===
+    await sock.sendMessage(chatId, { text: notificacion, mentions: [author, deleter] })
+    
+    console.log(`[REENVIADO] Mensaje de ${nombreAutor} reenviado correctamente`)
     
   } catch (error) {
     console.error('[RESEND ERROR]', error.message)
-    return false
   }
 }
 
@@ -132,15 +123,11 @@ export default {
           global.msgStore[chatId] = {}
         }
         
+        // Guardar el mensaje completo
         global.msgStore[chatId][msgId] = {
           key: msg.key,
           message: JSON.parse(JSON.stringify(msg.message)),
-          timestamp: Date.now(),
-          text: msg.message.conversation || 
-                msg.message.extendedTextMessage?.text || 
-                msg.message.imageMessage?.caption ||
-                msg.message.videoMessage?.caption ||
-                ''
+          timestamp: Date.now()
         }
         
         console.log(`[GUARDADO] ${chatId.substring(0, 15)}... - ${msgId.substring(0, 10)}...`)
@@ -148,7 +135,6 @@ export default {
         // Eliminar después de 2 minutos
         setTimeout(() => {
           delete global.msgStore[chatId]?.[msgId]
-          console.log(`[ELIMINADO STORE] ${msgId.substring(0, 10)}...`)
         }, 120000)
       }
       
@@ -170,16 +156,15 @@ export default {
           const chatId = deletedKey.remoteJid
           const deletedMsgId = deletedKey.id
           
-          console.log(`[ELIMINADO DETECTADO] ID: ${deletedMsgId.substring(0, 15)}...`)
+          console.log(`[ELIMINADO] ID: ${deletedMsgId.substring(0, 15)}...`)
           
           const deletedMsg = global.msgStore[chatId]?.[deletedMsgId]
           
           if (deletedMsg) {
-            console.log(`[ENCONTRADO] Recuperando mensaje...`)
-            // Llamar a la función externa
+            console.log(`[ENCONTRADO] Reenviando...`)
             await resendMessage(sock, chatId, deletedMsg, msg)
           } else {
-            console.log(`[NO ENCONTRADO] El mensaje no está en el store (puede que haya pasado más de 2 minutos)`)
+            console.log(`[NO ENCONTRADO] Mensaje no está en store`)
           }
         }
       }
