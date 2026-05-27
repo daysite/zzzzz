@@ -15,99 +15,53 @@ async function resendMessage(sock, chatId, deletedMsg, originalMsg) {
     
     const msgObj = deletedMsg.message
     
-    console.log(`[TIPO MENSAJE] ${Object.keys(msgObj || {})[0]}`)
-    
-    // Detectar tipo de mensaje
-    try {
-      // === STICKER ===
-      if (msgObj?.stickerMessage) {
-        type = 'sticker'
-        const stickerMsg = msgObj.stickerMessage
-        
-        // Verificar si tiene URL directa
-        if (stickerMsg?.url) {
-          console.log(`[STICKER] Descargando desde URL: ${stickerMsg.url.substring(0, 50)}...`)
-          const response = await fetch(stickerMsg.url)
-          if (response.ok) {
-            mediaBuffer = Buffer.from(await response.arrayBuffer())
-            console.log(`[STICKER] Descargado desde URL, tamaño: ${mediaBuffer.length} bytes`)
-          }
-        }
-        // Si no tiene URL, intentar con downloadMediaMessage
-        else if (deletedMsg.key && msgObj) {
-          try {
-            mediaBuffer = await sock.downloadMediaMessage(deletedMsg)
-            console.log(`[STICKER] Descargado con downloadMediaMessage, tamaño: ${mediaBuffer?.length || 0} bytes`)
-          } catch (e) {
-            console.log(`[STICKER] Error downloadMediaMessage: ${e.message}`)
-          }
-        }
-        
-        // Si no se pudo descargar, enviar aviso
-        if (!mediaBuffer) {
-          content = '[No se pudo recuperar el sticker]'
-          type = 'texto'
-        }
-      }
-      // === IMAGEN ===
-      else if (msgObj?.imageMessage) {
-        type = 'imagen'
-        content = msgObj.imageMessage.caption || ''
-        try {
-          mediaBuffer = await sock.downloadMediaMessage(deletedMsg)
-          console.log(`[IMAGEN] Descargada, tamaño: ${mediaBuffer?.length || 0} bytes`)
-        } catch(e) { 
-          console.log(`[IMAGEN] Error: ${e.message}`)
-          // Intentar con URL directa si existe
-          if (msgObj.imageMessage?.url) {
-            const response = await fetch(msgObj.imageMessage.url)
-            if (response.ok) mediaBuffer = Buffer.from(await response.arrayBuffer())
-          }
-        }
-      }
-      // === VIDEO ===
-      else if (msgObj?.videoMessage) {
-        type = 'video'
-        content = msgObj.videoMessage.caption || ''
-        try {
-          mediaBuffer = await sock.downloadMediaMessage(deletedMsg)
-          console.log(`[VIDEO] Descargado, tamaño: ${mediaBuffer?.length || 0} bytes`)
-        } catch(e) { console.log(`[VIDEO] Error: ${e.message}`) }
-      }
-      // === AUDIO ===
-      else if (msgObj?.audioMessage) {
-        type = 'audio'
-        try {
-          mediaBuffer = await sock.downloadMediaMessage(deletedMsg)
-          console.log(`[AUDIO] Descargado, tamaño: ${mediaBuffer?.length || 0} bytes`)
-        } catch(e) { console.log(`[AUDIO] Error: ${e.message}`) }
-      }
-      // === TEXTO NORMAL ===
-      else if (msgObj?.conversation) {
-        content = msgObj.conversation
-        type = 'texto'
-      }
-      // === TEXTO CON FORMATO ===
-      else if (msgObj?.extendedTextMessage?.text) {
-        content = msgObj.extendedTextMessage.text
-        type = 'texto'
-      }
-      // === DOCUMENTO ===
-      else if (msgObj?.documentMessage) {
-        content = msgObj.documentMessage.fileName || 'Documento'
-        type = 'documento'
-        try {
-          mediaBuffer = await sock.downloadMediaMessage(deletedMsg)
-        } catch(e) { console.log(`[DOCUMENTO] Error: ${e.message}`) }
-      }
-    } catch (err) {
-      console.log(`[ERROR MEDIA] ${err.message}`)
+    // Detectar tipo de mensaje y extraer contenido
+    if (msgObj?.imageMessage) {
+      type = 'imagen'
+      content = msgObj.imageMessage.caption || ''
+      try {
+        mediaBuffer = await sock.downloadMediaMessage({ key: deletedMsg.key, message: msgObj })
+      } catch(e) { console.log('Error imagen:', e.message) }
+    }
+    else if (msgObj?.videoMessage) {
+      type = 'video'
+      content = msgObj.videoMessage.caption || ''
+      try {
+        mediaBuffer = await sock.downloadMediaMessage({ key: deletedMsg.key, message: msgObj })
+      } catch(e) { console.log('Error video:', e.message) }
+    }
+    else if (msgObj?.stickerMessage) {
+      type = 'sticker'
+      try {
+        mediaBuffer = await sock.downloadMediaMessage({ key: deletedMsg.key, message: msgObj })
+      } catch(e) { console.log('Error sticker:', e.message) }
+    }
+    else if (msgObj?.audioMessage) {
+      type = 'audio'
+      try {
+        mediaBuffer = await sock.downloadMediaMessage({ key: deletedMsg.key, message: msgObj })
+      } catch(e) { console.log('Error audio:', e.message) }
+    }
+    else if (msgObj?.conversation) {
+      content = msgObj.conversation
+      type = 'texto'
+    }
+    else if (msgObj?.extendedTextMessage?.text) {
+      content = msgObj.extendedTextMessage.text
+      type = 'texto'
+    }
+    else if (msgObj?.documentMessage) {
+      content = msgObj.documentMessage.fileName || 'Documento'
+      type = 'documento'
+      try {
+        mediaBuffer = await sock.downloadMediaMessage({ key: deletedMsg.key, message: msgObj })
+      } catch(e) { console.log('Error documento:', e.message) }
     }
     
     const nombreAutor = author?.split('@')[0] || 'Desconocido'
     const nombreDeleter = deleter?.split('@')[0] || 'Alguien'
     
-    // Notificación simplificada
+    // Formato simplificado que pediste
     const notificacion = `🔴 *MENSAJE ELIMINADO*
 
 👤 *Autor:* @${nombreAutor}
@@ -116,52 +70,40 @@ async function resendMessage(sock, chatId, deletedMsg, originalMsg) {
 
 🛡️ *Anti-Delete*`
     
-    // === REENVIAR EL CONTENIDO ===
+    // === REENVIAR PRIMERO EL CONTENIDO DEL MENSAJE ===
+    
+    // Si es sticker
     if (type === 'sticker' && mediaBuffer) {
-      try {
-        await sock.sendMessage(chatId, { sticker: mediaBuffer })
-        console.log(`[STICKER REENVIADO]`)
-      } catch(e) {
-        console.log(`[ERROR] No se pudo reenviar sticker: ${e.message}`)
-        await sock.sendMessage(chatId, { text: `[Sticker no recuperable]` })
-      }
+      await sock.sendMessage(chatId, { sticker: mediaBuffer })
     }
+    // Si es imagen
     else if (type === 'imagen' && mediaBuffer) {
       await sock.sendMessage(chatId, { image: mediaBuffer, caption: content || '' })
     }
+    // Si es video
     else if (type === 'video' && mediaBuffer) {
       await sock.sendMessage(chatId, { video: mediaBuffer, caption: content || '' })
     }
+    // Si es audio
     else if (type === 'audio' && mediaBuffer) {
       await sock.sendMessage(chatId, { audio: mediaBuffer, mimetype: 'audio/mp4' })
     }
+    // Si es documento
     else if (type === 'documento' && mediaBuffer) {
       await sock.sendMessage(chatId, { document: mediaBuffer, fileName: content })
     }
+    // Si es texto o tiene contenido
     else if (content && content.trim() !== '') {
       await sock.sendMessage(chatId, { text: content })
     }
     
-    // === ENVIAR NOTIFICACIÓN ===
+    // === LUEGO ENVIAR LA NOTIFICACIÓN ===
     await sock.sendMessage(chatId, { text: notificacion, mentions: [author, deleter] })
     
-    console.log(`[REENVIADO] Mensaje de @${nombreAutor} reenviado correctamente`)
+    console.log(`[REENVIADO] Mensaje de ${nombreAutor} reenviado correctamente`)
     
   } catch (error) {
     console.error('[RESEND ERROR]', error.message)
-    // En caso de error, al menos enviar la notificación
-    try {
-      const author = deletedMsg?.key?.participant || deletedMsg?.key?.remoteJid || 'Desconocido'
-      const deleter = originalMsg?.key?.participant || originalMsg?.key?.remoteJid || 'Alguien'
-      const notificacionError = `🔴 *MENSAJE ELIMINADO*
-
-👤 *Autor:* @${author?.split('@')[0]}
-🗑️ *Eliminado por:* @${deleter?.split('@')[0]}
-📝 *Tipo:* No recuperable
-
-🛡️ *Anti-Delete*`
-      await sock.sendMessage(chatId, { text: notificacionError, mentions: [author, deleter] })
-    } catch(e) {}
   }
 }
 
