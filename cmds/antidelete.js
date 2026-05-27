@@ -43,15 +43,16 @@ export default {
     }
   },
   
-  // Detectar mensajes eliminados (MÉTODO MEJORADO)
+  // Detectar mensajes eliminados
   checkDelete: async (sock, msg) => {
     try {
-      // MÉTODO 1: Detectar protocolMessage
+      // Detectar protocolMessage (mensajes eliminados)
       if (msg.message?.protocolMessage) {
         const protocolMsg = msg.message.protocolMessage
         
+        console.log(`[PROTOCOL] Tipo: ${protocolMsg.type}`)
+        
         // type 0: REVOKE (mensaje eliminado)
-        // type 1: EPHEMERAL_SETTING (mensaje efímero)
         if (protocolMsg.type === 0) {
           const deletedKey = protocolMsg.key
           const chatId = deletedKey.remoteJid
@@ -65,16 +66,9 @@ export default {
             console.log(`[RECUPERADO] Mensaje encontrado!`)
             await this.resendMessage(sock, chatId, deletedMsg, msg)
           } else {
-            console.log(`[NO ENCONTRADO] Mensaje no está en store (puede que ya pasaron 2 minutos)`)
+            console.log(`[NO ENCONTRADO] Mensaje no está en store (puede que ya pasaron 2 minutos o no se guardó)`)
           }
         }
-      }
-      
-      // MÉTODO 2: Verificar si el mensaje tiene viewOnce (mensajes de un solo uso)
-      if (msg.message?.imageMessage?.viewOnce === true ||
-          msg.message?.videoMessage?.viewOnce === true) {
-        console.log(`[VIEWONCE] Mensaje de un solo uso detectado, guardando...`)
-        // Ya se guarda automáticamente en saveMessage
       }
       
     } catch (error) {
