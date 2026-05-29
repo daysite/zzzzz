@@ -9,7 +9,7 @@ import level from './cmds/level.ts';
 import antilink from './cmds/antilink.ts';
 import antistatus from './cmds/antistatus.ts';
 import { getGroupAdmins } from './core/message.ts';
-import antiDelete from './cmds/antidelete.js';
+import antiDelete from './cmds/antidelete.ts';
 
 seeCommands()
 
